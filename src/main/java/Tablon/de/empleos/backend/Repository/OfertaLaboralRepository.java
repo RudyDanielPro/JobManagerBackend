@@ -12,16 +12,9 @@ import Tablon.de.empleos.backend.Entity.OfertaLaboral;
 
 public interface OfertaLaboralRepository extends JpaRepository<OfertaLaboral, Long> {
 
-    Page<OfertaLaboral> findByEmpresaId(Long empresaId);
+    Page<OfertaLaboral> findByEmpresaId(Long empresaId,Pageable pageable);
 
     Page<OfertaLaboral> findByEstadoTrue(Pageable pageable);
 
     Page<OfertaLaboral> findByTituloContainingIgnoreCaseAndEstadoTrue(String titulo, Pageable pageable);
-
-    void deleteById(Long id);
-
-    Optional<OfertaLaboral> findById(Long ofertaId);
-
-
-
 }

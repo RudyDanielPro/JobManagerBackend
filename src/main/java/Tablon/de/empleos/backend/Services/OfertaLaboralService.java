@@ -7,6 +7,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 public class OfertaLaboralService {
 
@@ -26,6 +28,17 @@ public class OfertaLaboralService {
         return ofertaRepository.findByTituloContainingIgnoreCaseAndEstadoTrue(titulo, pageable);
     }
 
+    // Nuevo método para listar ofertas de una empresa específica
+    @Transactional(readOnly = true)
+    public Page<OfertaLaboral> obtenerPorEmpresa(Long empresaId, Pageable pageable) {
+        return ofertaRepository.findByEmpresaId(empresaId, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<OfertaLaboral> obtenerPorId(Long id) {
+        return ofertaRepository.findById(id);
+    }
+
     @Transactional
     public OfertaLaboral guardarOferta(OfertaLaboral oferta) {
         return ofertaRepository.save(oferta);
@@ -33,6 +46,10 @@ public class OfertaLaboralService {
 
     @Transactional
     public void eliminarOferta(Long id) {
-        ofertaRepository.deleteById(id);
+        if (ofertaRepository.existsById(id)) {
+            ofertaRepository.deleteById(id);
+        } else {
+            throw new RuntimeException("No se puede eliminar: Oferta no encontrada con ID: " + id);
+        }
     }
 }
