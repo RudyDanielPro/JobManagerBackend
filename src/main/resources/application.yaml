@@ -1,33 +1,38 @@
 spring:
   application:
     name: Tablon-de-empleos-backend
-  
-  # Configuración de Base de Datos (PostgreSQL en Render)
+
+  # Base de Datos
   datasource:
     url: ${DB_URL}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
-  
+
   jpa:
     hibernate:
-      ddl-auto: update # Cambia a 'validate' cuando estés en producción real
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        # Esto ayuda a evitar problemas de conexión persistente en Render
         jdbc:
           batch_size: 10
           lob:
             non_contextual_creation: true
 
-  # Configuración para subida de CVs (PDFs)
+  # Archivos y Multipart
   servlet:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+
+# Gestión de imágenes en la nube
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
 
 # Configuración de Resend (Email API)
 resend:
@@ -36,16 +41,17 @@ resend:
   from:
     email: ${RESEND_FROM_EMAIL}
 
-# Configuración del Usuario Maestro (ADMIN)
-# Estos valores los leerá tu DataInitializer
+# Usuario Maestro (ADMIN)
+# En tu archivo application.yaml
 admin:
   setup:
-    user: ${ADMIN_USER:admin}
-    pass: ${ADMIN_PASS:admin1234}
-    email: ${ADMIN_EMAIL:admin@tuapp.com}
+    user: ${ADMIN_USER}
+    pass: ${ADMIN_PASS}
+    email: ${ADMIN_EMAIL}
+    foto: ${ADMIN_FOTO_URL}
 
-# Configuración de Servidor (Opcional pero recomendado para Render)
+# Configuración del servidor para Render
 server:
   port: ${PORT:8080}
   error:
-    include-message: always # Útil para depurar errores en el frontend
+    include-message: always

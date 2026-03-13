@@ -19,9 +19,6 @@ public class OfertaLaboralController {
     public OfertaLaboralController(OfertaLaboralService ofertaService) {
         this.ofertaService = ofertaService;
     }
-
-    // Obtener ofertas activas con paginación
-    // Ejemplo: /api/ofertas?page=0&size=10
     @GetMapping
     public ResponseEntity<Page<OfertaLaboral>> listarOfertas(
             @RequestParam(defaultValue = "0") int page,
