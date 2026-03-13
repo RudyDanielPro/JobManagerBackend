@@ -4,6 +4,7 @@ import Tablon.de.empleos.backend.DTO.PostulacionRequest;
 import Tablon.de.empleos.backend.Entity.OfertaLaboral;
 import Tablon.de.empleos.backend.Repository.OfertaLaboralRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PostulacionService {
@@ -16,19 +17,22 @@ public class PostulacionService {
         this.emailService = emailService;
     }
 
+    @Transactional(readOnly = true)
     public void procesarPostulacion(PostulacionRequest request) {
-    OfertaLaboral oferta = ofertaRepository.findById(request.ofertaId())
-            .orElseThrow(() -> new RuntimeException("Oferta no encontrada"));
+        OfertaLaboral oferta = ofertaRepository.findById(request.ofertaId())
+                .orElseThrow(() -> new RuntimeException("Oferta no encontrada."));
 
-    String emailDestino = oferta.getEmpresa().getCorreoContacto();
-    String nombreCompleto= request.nombre() + " " + request.apellido();
+        String emailDestino = oferta.getEmpresa().getCorreoContacto();
+        String nombreCompleto = request.nombre() + " " + request.apellido();
 
-    emailService.enviarCorreoResend(
-        emailDestino, 
-        oferta.getTitulo(),    
-        nombreCompleto,        
-        request.mensaje(),               
-        request.cv()                     
-    );
-}
+        // Ahora enviamos también el email del candidato para el reply_to
+        emailService.enviarCorreoResend(
+            emailDestino, 
+            oferta.getTitulo(),    
+            nombreCompleto,
+            request.emailCandidato(), // <--- Nuevo parámetro
+            request.mensaje(),                
+            request.cv()                    
+        );
+    }
 }

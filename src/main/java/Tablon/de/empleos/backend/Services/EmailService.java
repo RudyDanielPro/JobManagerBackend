@@ -19,10 +19,9 @@ public class EmailService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final String RESEND_API_URL = "https://api.resend.com/emails";
 
-    // Modificamos los parámetros para construir el asunto dinámicamente
-    public void enviarCorreoResend(String destinatario, String tituloOferta, String nombreCandidato, String cuerpo, MultipartFile cv) {
+    public void enviarCorreoResend(String destinatario, String tituloOferta, String nombreCandidato, 
+                                   String emailCandidato, String cuerpo, MultipartFile cv) {
         
-        // Construcción del asunto según tu requerimiento
         String asuntoPersonalizado = String.format("Solicitud del puesto (%s), por parte de %s", 
                                      tituloOferta, nombreCandidato);
 
@@ -33,29 +32,35 @@ public class EmailService {
         Map<String, Object> body = new HashMap<>();
         body.put("from", fromEmail);
         body.put("to", destinatario);
-        body.put("subject", asuntoPersonalizado); // Usamos el asunto generado
-        body.put("text", cuerpo);
+        // CLAVE: Esto permite que la empresa responda directamente al candidato
+        body.put("reply_to", emailCandidato); 
+        body.put("subject", asuntoPersonalizado);
+        
+        // Mejoramos el cuerpo del texto para que sea más profesional
+        String textoFinal = String.format(
+            "Has recibido una nueva postulación para: %s\n\n" +
+            "Candidato: %s\n" +
+            "Email de contacto: %s\n\n" +
+            "Mensaje:\n%s",
+            tituloOferta, nombreCandidato, emailCandidato, cuerpo
+        );
+        body.put("text", textoFinal);
 
         if (cv != null && !cv.isEmpty()) {
             try {
                 byte[] bytes = cv.getBytes();
                 String base64Content = Base64.getEncoder().encodeToString(bytes);
-                
                 Map<String, String> attachment = new HashMap<>();
-                attachment.put("filename", cv.getOriginalFilename());
+                attachment.put("filename", (cv.getOriginalFilename() != null) ? cv.getOriginalFilename() : "CV_Candidato.pdf");
                 attachment.put("content", base64Content);
-                
                 body.put("attachments", Collections.singletonList(attachment));
             } catch (Exception e) {
-                throw new RuntimeException("Error al procesar el adjunto para Resend", e);
+                throw new RuntimeException("Error al procesar el CV", e);
             }
         }
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-        ResponseEntity<String> response = restTemplate.postForEntity(RESEND_API_URL, request, String.class);
-
-        if (!response.getStatusCode().is2xxSuccessful()) {
-            throw new RuntimeException("Error al enviar email vía Resend: " + response.getBody());
-        }
+        restTemplate.postForEntity(RESEND_API_URL, request, String.class);
     }
+
 }
