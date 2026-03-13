@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: Tablon-de-empleos-backend
+  
+  # Configuración de Base de Datos (PostgreSQL en Render)
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update # Cambia a 'validate' cuando estés en producción real
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        # Esto ayuda a evitar problemas de conexión persistente en Render
+        jdbc:
+          batch_size: 10
+          lob:
+            non_contextual_creation: true
+
+  # Configuración para subida de CVs (PDFs)
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+# Configuración de Resend (Email API)
+resend:
+  api:
+    key: ${RESEND_API_KEY}
+  from:
+    email: ${RESEND_FROM_EMAIL}
+
+# Configuración del Usuario Maestro (ADMIN)
+# Estos valores los leerá tu DataInitializer
+admin:
+  setup:
+    user: ${ADMIN_USER:admin}
+    pass: ${ADMIN_PASS:admin1234}
+    email: ${ADMIN_EMAIL:admin@tuapp.com}
+
+# Configuración de Servidor (Opcional pero recomendado para Render)
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: always # Útil para depurar errores en el frontend
