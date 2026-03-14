@@ -28,4 +28,14 @@ public class AuthController {
             return ResponseEntity.status(500).body("Error al subir la imagen a Cloudinary");
         }
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+        User user = usuarioService.autenticarUsuario(loginRequest.getIdentificador(), loginRequest.getPassword());
+        if (user != null) {
+            return ResponseEntity.ok(user);
+        } else {
+            return ResponseEntity.status(401).body("Credenciales inválidas");
+        }
+    }
 }

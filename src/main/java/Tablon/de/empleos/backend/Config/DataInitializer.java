@@ -24,7 +24,7 @@ public class DataInitializer implements CommandLineRunner {
     private String adminEmail;
 
 
-    @Value("${ADMIN_FOTO_URL") 
+    @Value("${ADMIN_FOTO_URL}") 
     private String adminFotoUrl;
 
     public DataInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder) {

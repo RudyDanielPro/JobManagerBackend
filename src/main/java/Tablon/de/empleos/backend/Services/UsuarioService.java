@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class UsuarioService {
@@ -57,5 +58,20 @@ public class UsuarioService {
 
         // 5. Guardar el usuario en la base de datos (PostgreSQL)
         return userRepository.save(usuario);
+    }
+
+    
+    public User autenticarUsuario(String identificador, String password) {
+        Optional<User> userOpt = userRepository.findByEmail(identificador);
+        if (!userOpt.isPresent()) {
+            userOpt = userRepository.findByUsuario(identificador);
+        }
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            if (passwordEncoder.matches(password, user.getPassword())) {
+                return user;
+            }
+        }
+        return null;
     }
 }

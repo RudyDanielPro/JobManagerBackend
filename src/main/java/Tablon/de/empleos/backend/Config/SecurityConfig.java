@@ -30,7 +30,7 @@ public class SecurityConfig {
                
                 .requestMatchers("/api/**").hasRole("ADMIN")
                 
-                // 4. Cualquier otra ruta requiere estar logueado
+                
                 .anyRequest().authenticated()
             )
             .httpBasic(httpBasic -> {}); 
