@@ -19,20 +19,27 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
+                // 0. Rutas de Swagger PROTEGIDAS solo para ADMINISTRADORES
+                .requestMatchers(
+                    "/v3/api-docs/**", 
+                    "/swagger-ui/**", 
+                    "/swagger-ui.html"
+                ).hasRole("ADMIN")
+
                 // 1. Rutas PÚBLICAS (Deben ir primero)
                 .requestMatchers("/api/auth/**").permitAll() 
                 .requestMatchers("/api/ofertas/**").permitAll() 
                 .requestMatchers("/api/postulaciones/enviar").permitAll() 
                 
-                // 2. Rutas para RECLUTADORES
+                // 2. Rutas para RECLUTADORES y ADMIN
                 .requestMatchers("/api/empresas/**").hasAnyRole("RECRUITER", "ADMIN")
                 
-               
+                // 3. Resto de rutas de la API protegidas para ADMIN
                 .requestMatchers("/api/**").hasRole("ADMIN")
-                
                 
                 .anyRequest().authenticated()
             )
+            // Esto es lo que activa la ventanita nativa del navegador para pedir credenciales
             .httpBasic(httpBasic -> {}); 
 
         return http.build();
