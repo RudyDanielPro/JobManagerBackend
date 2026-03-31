@@ -5,6 +5,9 @@ import Tablon.de.empleos.backend.Services.UsuarioService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.IOException;
 
 @RestController
@@ -18,24 +21,30 @@ public class AuthController {
         this.usuarioService = usuarioService;
     }
 
-    @PostMapping("/registro")
-    public ResponseEntity<?> registrar(@RequestPart("usuario") User usuario, 
-                                       @RequestPart(value = "archivo", required = false) MultipartFile archivo) {
+    @PostMapping(value = "/registro", consumes = { "multipart/form-data" })
+    public ResponseEntity<?> registrar(
+            @RequestPart("usuario") String usuarioJson, // Recibimos como String para deserializar manualmente o dejar
+                                                        // que Jackson lo haga
+            @RequestPart(value = "archivo", required = false) MultipartFile archivo) {
         try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            User usuario = objectMapper.readValue(usuarioJson, User.class);
+
             User nuevoUsuario = usuarioService.registrarUsuario(usuario, archivo);
             return ResponseEntity.ok(nuevoUsuario);
         } catch (IOException e) {
-            return ResponseEntity.status(500).body("Error al subir la imagen a Cloudinary");
+            return ResponseEntity.status(500).body("Error al procesar el registro: " + e.getMessage());
         }
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
-        User user = usuarioService.autenticarUsuario(loginRequest.getIdentificador(), loginRequest.getPassword());
+    public ResponseEntity<?> login(@RequestBody LoginRequest credentials) {
+        // Usamos el método que SI verifica el password
+        User user = usuarioService.autenticarUsuario(credentials.getIdentificador(), credentials.getPassword());
+
         if (user != null) {
             return ResponseEntity.ok(user);
-        } else {
-            return ResponseEntity.status(401).body("Credenciales inválidas");
         }
+        return ResponseEntity.status(401).body("Usuario o contraseña incorrectos");
     }
 }

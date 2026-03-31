@@ -20,9 +20,9 @@ public class UsuarioService {
     private final PasswordEncoder passwordEncoder;
 
     // Inyección por constructor (la forma más recomendada en Spring Boot)
-    public UsuarioService(UserRepository userRepository, 
-                          CloudinaryService cloudinaryService, 
-                          PasswordEncoder passwordEncoder) {
+    public UsuarioService(UserRepository userRepository,
+            CloudinaryService cloudinaryService,
+            PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.cloudinaryService = cloudinaryService;
         this.passwordEncoder = passwordEncoder;
@@ -30,14 +30,16 @@ public class UsuarioService {
 
     /**
      * Registra un nuevo usuario en el sistema.
-     * @param usuario Objeto con los datos del usuario (nombre, email, usuario, password, etc.)
-     * @param imagen Archivo de imagen opcional para el perfil.
+     * 
+     * @param usuario Objeto con los datos del usuario (nombre, email, usuario,
+     *                password, etc.)
+     * @param imagen  Archivo de imagen opcional para el perfil.
      * @return El usuario guardado con su contraseña encriptada y foto vinculada.
      * @throws IOException Si ocurre un error al subir la imagen a Cloudinary.
      */
     @Transactional
     public User registrarUsuario(User usuario, MultipartFile imagen) throws IOException {
-        
+
         // 1. Encriptar la contraseña antes de guardarla (Seguridad obligatoria)
         usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
 
@@ -60,18 +62,20 @@ public class UsuarioService {
         return userRepository.save(usuario);
     }
 
-    
     public User autenticarUsuario(String identificador, String password) {
-        Optional<User> userOpt = userRepository.findByEmail(identificador);
-        if (!userOpt.isPresent()) {
-            userOpt = userRepository.findByUsuario(identificador);
-        }
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            if (passwordEncoder.matches(password, user.getPassword())) {
-                return user;
-            }
+        User user = buscarPorIdentificador(identificador); // Reutilizamos lógica
+
+        if (user != null && passwordEncoder.matches(password, user.getPassword())) {
+            return user;
         }
         return null;
+    }
+
+    public User buscarPorIdentificador(String indentificador) {
+        Optional<User> userOpt = userRepository.findByEmail(indentificador);
+        if (!userOpt.isPresent()) {
+            userOpt = userRepository.findByUsuario(indentificador);
+        }
+        return userOpt.orElse(null);
     }
 }
