@@ -28,6 +28,11 @@ public class OfertaLaboralService {
         return ofertaRepository.findByTituloContainingIgnoreCaseAndEstadoTrue(titulo, pageable);
     }
 
+    @Transactional(readOnly = true)
+    public Page<OfertaLaboral> obtenerPorId(Long id, Pageable pageable) {
+        return ofertaRepository.findByIdAndEstadoTrue(id, pageable);
+    }
+
     // Nuevo método para listar ofertas de una empresa específica
     @Transactional(readOnly = true)
     public Page<OfertaLaboral> obtenerPorEmpresa(Long empresaId, Pageable pageable) {

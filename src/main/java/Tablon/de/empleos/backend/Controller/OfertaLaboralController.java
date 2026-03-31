@@ -19,11 +19,12 @@ public class OfertaLaboralController {
     public OfertaLaboralController(OfertaLaboralService ofertaService) {
         this.ofertaService = ofertaService;
     }
+
     @GetMapping
     public ResponseEntity<Page<OfertaLaboral>> listarOfertas(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        
+
         Pageable pageable = PageRequest.of(page, size, Sort.by("fechaCreacion").descending());
         return ResponseEntity.ok(ofertaService.obtenerOfertasActivas(pageable));
     }
@@ -34,9 +35,16 @@ public class OfertaLaboralController {
             @RequestParam String titulo,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        
+
         Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(ofertaService.buscarPorTitulo(titulo, pageable));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<OfertaLaboral> obtenerPorId(@PathVariable Long id) {
+        return ofertaService.obtenerPorId(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping

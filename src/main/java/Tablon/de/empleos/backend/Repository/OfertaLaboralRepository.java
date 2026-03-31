@@ -17,4 +17,6 @@ public interface OfertaLaboralRepository extends JpaRepository<OfertaLaboral, Lo
     Page<OfertaLaboral> findByEstadoTrue(Pageable pageable);
 
     Page<OfertaLaboral> findByTituloContainingIgnoreCaseAndEstadoTrue(String titulo, Pageable pageable);
+
+    Page<OfertaLaboral> findByIdAndEstadoTrue(Long id, Pageable pageable);
 }
