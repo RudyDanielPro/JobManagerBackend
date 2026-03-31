@@ -19,20 +19,20 @@ public class PostulacionService {
 
     @Transactional(readOnly = true)
     public void procesarPostulacion(PostulacionRequest request) {
-        OfertaLaboral oferta = ofertaRepository.findById(request.ofertaId())
+        OfertaLaboral oferta = ofertaRepository.findById(request.getOfertaId())
                 .orElseThrow(() -> new RuntimeException("Oferta no encontrada."));
 
         String emailDestino = oferta.getEmpresa().getCorreoContacto();
-        String nombreCompleto = request.nombre() + " " + request.apellido();
+        String nombreCompleto = request.getNombre() + " " + request.getApellido();
 
         // Ahora enviamos también el email del candidato para el reply_to
         emailService.enviarCorreoResend(
             emailDestino, 
             oferta.getTitulo(),    
             nombreCompleto,
-            request.emailCandidato(), // <--- Nuevo parámetro
-            request.mensaje(),                
-            request.cv()                    
+            request.getEmailCandidato(), // <--- Nuevo parámetro
+            request.getMensaje(),                
+            request.getCv()                    
         );
     }
 }

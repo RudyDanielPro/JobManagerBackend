@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/postulaciones")
-@CrossOrigin(origins = "*") // Permite peticiones desde tu React
+@CrossOrigin(origins = "*")
 public class PostulacionController {
 
     private final PostulacionService postulacionService;
@@ -22,7 +22,8 @@ public class PostulacionController {
             postulacionService.procesarPostulacion(request);
             return ResponseEntity.ok("Postulación enviada con éxito al reclutador.");
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Error al procesar la postulación: " + e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body("Error al procesar la postulación: " + e.getMessage());
         }
     }
 }
