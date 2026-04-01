@@ -27,6 +27,12 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${ADMIN_FOTO_URL}") 
     private String adminFotoUrl;
 
+    @Value("$ADMIN_NAME}") 
+    private String nombre;
+
+    @Value("${ADMIN_APELLIDO}") 
+    private String apellido;
+
     public DataInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -36,8 +42,8 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) {
         if (!userRepository.existsByUsuario(adminUser)) {
             User admin = new User();
-            admin.setNombre("Admin"); // Añadí estos campos para que no den error de validación
-            admin.setApellido("Sistema");
+            admin.setNombre(nombre); // Añadí estos campos para que no den error de validación
+            admin.setApellido(apellido);
             admin.setUsuario(adminUser);
             admin.setEmail(adminEmail);
             admin.setPassword(passwordEncoder.encode(adminPass)); 
@@ -48,8 +54,8 @@ public class DataInitializer implements CommandLineRunner {
             fotoAdmin.setRuta(adminFotoUrl);
             fotoAdmin.setNombreArchivo("avatar_admin.png");
             
-            admin.setFoto(fotoAdmin); // Vinculamos la entidad UserFoto
-            // -----------------------------
+            admin.setFoto(fotoAdmin);
+            
 
             userRepository.save(admin);
             System.out.println("SISTEMA: Usuario ADMIN creado con foto desde variables.");

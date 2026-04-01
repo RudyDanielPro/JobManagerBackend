@@ -49,6 +49,8 @@ admin:
     pass: ${ADMIN_PASS}
     email: ${ADMIN_EMAIL}
     foto: ${ADMIN_FOTO_URL}
+    name: ${ADMIN_NAME}
+    apellido: ${ADMIN_APELLIDO}
 
 # Configuración del servidor para Render
 server:
