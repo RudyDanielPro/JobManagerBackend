@@ -41,6 +41,10 @@ resend:
   from:
     email: ${RESEND_FROM_EMAIL}
 
+    jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION}
+
 # Usuario Maestro (ADMIN)
 # En tu archivo application.yaml
 admin:
