@@ -47,7 +47,7 @@ public class PostulacionService {
         Candidato candidato = candidatoRepository.findById(candidatoId)
                 .orElseThrow(() -> new RuntimeException("Candidato no encontrado con ID: " + candidatoId));
 
-        boolean yaExiste = postulacionRepository.existsByCandidatoIdAndOfertaId(candidatoId, request.getOfertaId());
+        boolean yaExiste = postulacionRepository.existsByCandidatoIdAndOfertaLaboralId(candidatoId, request.getOfertaId());
         if (yaExiste) {
             throw new RuntimeException("Ya te has postulado a esta oferta anteriormente");
         }
@@ -103,27 +103,27 @@ public class PostulacionService {
 
     @Transactional(readOnly = true)
     public Page<Postulacion> buscarPorOferta(Long ofertaId, Pageable pageable) {
-        return postulacionRepository.findByOfertaId(ofertaId, pageable);
+        return postulacionRepository.findByOfertaLaboralId(ofertaId, pageable);
     }
 
     @Transactional(readOnly = true)
     public List<Postulacion> buscarPorOferta(Long ofertaId) {
-        return postulacionRepository.findByOfertaId(ofertaId);
+        return postulacionRepository.findByOfertaLaboralId(ofertaId);
     }
 
     @Transactional(readOnly = true)
     public List<Postulacion> buscarPorOfertaConDetalles(Long ofertaId) {
-        return postulacionRepository.findByOfertaIdWithDetails(ofertaId);
+        return postulacionRepository.findByOfertaLaboralIdWithDetails(ofertaId);
     }
 
     @Transactional(readOnly = true)
     public long contarPostulacionesPorOferta(Long ofertaId) {
-        return postulacionRepository.countByOfertaId(ofertaId);
+        return postulacionRepository.countByOfertaLaboralId(ofertaId);
     }
 
     @Transactional(readOnly = true)
     public long contarPostulacionesActivasPorOferta(Long ofertaId) {
-        return postulacionRepository.countByOfertaIdAndEstado(ofertaId, true);
+        return postulacionRepository.countByOfertaLaboralIdAndEstado(ofertaId, true);
     }
 
     @Transactional(readOnly = true)
@@ -133,7 +133,7 @@ public class PostulacionService {
 
     @Transactional(readOnly = true)
     public boolean yaSePostulo(Long candidatoId, Long ofertaId) {
-        return postulacionRepository.existsByCandidatoIdAndOfertaId(candidatoId, ofertaId);
+        return postulacionRepository.existsByCandidatoIdAndOfertaLaboralId(candidatoId, ofertaId);
     }
 
     @Transactional(readOnly = true)
@@ -163,7 +163,7 @@ public class PostulacionService {
             throw new RuntimeException("No tienes permisos para modificar esta postulación");
         }
 
-        postulacion.setEstado(false); // Rechazada
+        postulacion.setEstado(false);
         return postulacionRepository.save(postulacion);
     }
 
