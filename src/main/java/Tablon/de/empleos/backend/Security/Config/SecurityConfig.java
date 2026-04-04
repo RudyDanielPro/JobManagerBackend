@@ -4,6 +4,7 @@ import Tablon.de.empleos.backend.Security.jwt.JwtAuthenticationFilter;
 import Tablon.de.empleos.backend.Repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -28,7 +29,9 @@ public class SecurityConfig {
     private final UserRepository userRepository;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    public SecurityConfig(UserRepository userRepository, JwtAuthenticationFilter jwtAuthenticationFilter) {
+    // ✅ Agregar @Lazy para romper el ciclo
+    public SecurityConfig(UserRepository userRepository, 
+                          @Lazy JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.userRepository = userRepository;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
@@ -66,8 +69,9 @@ public class SecurityConfig {
     @Bean
     public UserDetailsService userDetailsService() {
         return username -> {
-            Tablon.de.empleos.backend.Entity.User user = userRepository.findByUsuario(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
+            Tablon.de.empleos.backend.Entity.User user = userRepository.findByEmail(username)
+                .orElseGet(() -> userRepository.findByUsuario(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username)));
             
             String roleName = user.getRol();
             if (!roleName.startsWith("ROLE_")) {
