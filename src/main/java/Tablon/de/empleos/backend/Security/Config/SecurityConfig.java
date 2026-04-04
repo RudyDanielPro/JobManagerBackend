@@ -29,7 +29,6 @@ public class SecurityConfig {
     private final UserRepository userRepository;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    // ✅ Agregar @Lazy para romper el ciclo
     public SecurityConfig(UserRepository userRepository, 
                           @Lazy JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.userRepository = userRepository;
@@ -52,6 +51,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/postulaciones/**").authenticated()
                 .anyRequest().hasRole("ADMIN")
             )
+            .httpBasic(httpBasic -> {})
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
