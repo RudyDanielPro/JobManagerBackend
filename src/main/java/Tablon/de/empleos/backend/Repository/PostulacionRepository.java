@@ -21,25 +21,25 @@ public interface PostulacionRepository extends JpaRepository<Postulacion, Long> 
 
     List<Postulacion> findByCandidatoIdOrderByFechaPostulacionDesc(Long candidatoId);
 
-    Page<Postulacion> findByOfertaId(Long ofertaId, Pageable pageable);
+    Page<Postulacion> findByOfertaLaboralId(Long ofertaId, Pageable pageable);
 
-    List<Postulacion> findByOfertaId(Long ofertaId);
+    List<Postulacion> findByOfertaLaboralId(Long ofertaId);
 
-    Page<Postulacion> findByOfertaIdOrderByFechaPostulacionDesc(Long ofertaId, Pageable pageable);
+    Page<Postulacion> findByOfertaLaboralIdOrderByFechaPostulacionDesc(Long ofertaId, Pageable pageable);
 
-    List<Postulacion> findByOfertaIdOrderByFechaPostulacionDesc(Long ofertaId);
+    List<Postulacion> findByOfertaLaboralIdOrderByFechaPostulacionDesc(Long ofertaId);
 
     Page<Postulacion> findByEstado(boolean estado, Pageable pageable);
 
     List<Postulacion> findByEstado(boolean estado);
 
-    Optional<Postulacion> findByCandidatoIdAndOfertaId(Long candidatoId, Long ofertaId);
+    Optional<Postulacion> findByCandidatoIdAndOfertaLaboralId(Long candidatoId, Long ofertaId);
 
-    boolean existsByCandidatoIdAndOfertaId(Long candidatoId, Long ofertaId);
+    boolean existsByCandidatoIdAndOfertaLaboralId(Long candidatoId, Long ofertaId);
 
-    long countByOfertaId(Long ofertaId);
+    long countByOfertaLaboralId(Long ofertaId);
 
-    long countByOfertaIdAndEstado(Long ofertaId, boolean estado);
+    long countByOfertaLaboralIdAndEstado(Long ofertaId, boolean estado);
 
     long countByCandidatoId(Long candidatoId);
 
@@ -53,7 +53,7 @@ public interface PostulacionRepository extends JpaRepository<Postulacion, Long> 
     List<Postulacion> findByCandidatoIdWithDetails(@Param("candidatoId") Long candidatoId);
 
     @Query("SELECT p FROM Postulacion p JOIN FETCH p.candidato JOIN FETCH p.ofertaLaboral WHERE p.ofertaLaboral.id = :ofertaId")
-    List<Postulacion> findByOfertaIdWithDetails(@Param("ofertaId") Long ofertaId);
+    List<Postulacion> findByOfertaLaboralIdWithDetails(@Param("ofertaId") Long ofertaId);
 
     Page<Postulacion> findByCandidatoIdAndEstado(Long candidatoId, boolean estado, Pageable pageable);
 }
