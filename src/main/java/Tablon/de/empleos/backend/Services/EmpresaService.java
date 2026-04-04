@@ -2,75 +2,234 @@ package Tablon.de.empleos.backend.Services;
 
 import Tablon.de.empleos.backend.Entity.Empresa;
 import Tablon.de.empleos.backend.Entity.User;
+import Tablon.de.empleos.backend.Entity.UserFoto;
 import Tablon.de.empleos.backend.Repository.EmpresaRepository;
+import Tablon.de.empleos.backend.Repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
 public class EmpresaService {
 
     private final EmpresaRepository empresaRepository;
+    private final UserRepository userRepository;
+    private final CloudinaryService cloudinaryService;
 
-    public EmpresaService(EmpresaRepository empresaRepository) {
+    public EmpresaService(EmpresaRepository empresaRepository,
+                          UserRepository userRepository,
+                          CloudinaryService cloudinaryService) {
         this.empresaRepository = empresaRepository;
+        this.userRepository = userRepository;
+        this.cloudinaryService = cloudinaryService;
     }
 
-    // 1. Obtener todas las empresas (Solo para el ADMIN o el Tablón general)
-    @Transactional(readOnly = true)
-    public List<Empresa> obtenerTodas() {
-        return empresaRepository.findAll();
-    }
+    // ==================== CREAR ====================
 
-    // 2. Obtener la empresa por su ID
-    @Transactional(readOnly = true)
-    public Optional<Empresa> obtenerPorId(Long id) {
-        return empresaRepository.findById(id);
-    }
-
-    // 3. Obtener la empresa vinculada a un Usuario (Clave para el Login)
-    @Transactional(readOnly = true)
-    public Optional<Empresa> obtenerPorUsuario(Long usuarioId) {
-        return empresaRepository.findByUsuarioId(usuarioId);
-    }
-
-    // 4. Crear o Actualizar Empresa
+    /**
+     * Registra una nueva empresa con su usuario asociado.
+     * La empresa y el usuario comparten el mismo ID.
+     */
     @Transactional
-    public Empresa guardar(Empresa empresa) {
-        // Aquí podrías agregar validaciones, como verificar que el correoContacto sea válido
+    public Empresa registrarEmpresa(User usuario, String nombreEmpresa, String descripcion, String url, MultipartFile logo) throws IOException {
+        // 1. Guardar el usuario primero
+        usuario.setRol("reclutador");
+        User userGuardado = userRepository.save(usuario);
+
+        // 2. Crear la empresa con el MISMO ID
+        Empresa empresa = new Empresa(nombreEmpresa, descripcion, url);
+        empresa.setId(userGuardado.getId());
+        empresa.setUsuario(userGuardado);
+
+        // 3. Vincular la relación inversa
+        userGuardado.setEmpresa(empresa);
+
+        // 4. Procesar logo si existe
+        if (logo != null && !logo.isEmpty()) {
+            Map result = cloudinaryService.upload(logo);
+            String urlCloudinary = result.get("url").toString();
+
+            UserFoto foto = new UserFoto();
+            foto.setRuta(urlCloudinary);
+            foto.setNombreArchivo(logo.getOriginalFilename());
+            userGuardado.setFoto(foto);
+        }
+
+        // 5. Guardar empresa
         return empresaRepository.save(empresa);
     }
 
-    // 5. Actualización parcial (Para el perfil de la empresa)
-    @Transactional
-    public Empresa actualizarPerfil(Long id, Empresa datosNuevos, User usuarioAutenticado) {
-        return empresaRepository.findById(id).map(empresa -> {
-            
-            // SEGURIDAD: Solo el ADMIN o el dueño de la empresa pueden editar
-            boolean esAdmin = usuarioAutenticado.getRol().equals("ROLE_ADMIN");
-            boolean esDueno = empresa.getUsuario().getId().equals(usuarioAutenticado.getId());
+    // ==================== BUSCAR ====================
 
-            if (esAdmin || esDueno) {
-                empresa.setNombre(datosNuevos.getNombre());
-                empresa.setDescripcion(datosNuevos.getDescripcion());
-                empresa.setCorreoContacto(datosNuevos.getCorreoContacto());
-                empresa.setUrl(datosNuevos.getUrl());
-                // Si viene una foto nueva, se actualiza aquí también
-                if (datosNuevos.getFoto() != null) {
-                    empresa.setFoto(datosNuevos.getFoto());
-                }
-                return empresaRepository.save(empresa);
-            } else {
-                throw new RuntimeException("No tienes permisos para modificar esta empresa.");
-            }
-        }).orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + id));
+    @Transactional(readOnly = true)
+    public Optional<Empresa> buscarPorId(Long id) {
+        return empresaRepository.findById(id);
     }
 
-    // 6. Eliminar Empresa (Poder exclusivo del ADMIN)
+    @Transactional(readOnly = true)
+    public Optional<Empresa> buscarPorUsuarioId(Long userId) {
+        return empresaRepository.findByUsuarioId(userId);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Empresa> buscarPorEmail(String email) {
+        return empresaRepository.findByUsuarioEmail(email);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Empresa> buscarPorNombreEmpresa(String nombreEmpresa) {
+        return empresaRepository.findByNombreEmpresa(nombreEmpresa);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Empresa> buscarPorNombreContaining(String keyword, Pageable pageable) {
+        return empresaRepository.findByNombreEmpresaContaining(keyword, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Empresa> buscarPorNombreContaining(String keyword) {
+        return empresaRepository.findByNombreEmpresaContaining(keyword);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Empresa> buscarTodosPaginado(Pageable pageable) {
+        return empresaRepository.findAll(pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Empresa> buscarTodos() {
+        return empresaRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Empresa> buscarTodosConOfertas() {
+        return empresaRepository.findAllWithOfertas();
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Empresa> buscarPorIdConOfertas(Long id) {
+        return empresaRepository.findByIdWithOfertas(id);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Empresa> buscarTodosConOfertasPaginado(Pageable pageable) {
+        return empresaRepository.findAllWithOfertas(pageable);
+    }
+
+    // ==================== ACTUALIZAR ====================
+
     @Transactional
-    public void eliminar(Long id) {
-        empresaRepository.deleteById(id);
+    public Empresa actualizarPerfil(Long id, String nombreEmpresa, String descripcion, String url, User usuarioAutenticado) {
+        Empresa empresa = empresaRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + id));
+
+        // Seguridad: Solo ADMIN o el dueño de la empresa pueden editar
+        boolean esAdmin = "ADMIN".equals(usuarioAutenticado.getRol());
+        boolean esDueno = empresa.getUsuario().getId().equals(usuarioAutenticado.getId());
+
+        if (!esAdmin && !esDueno) {
+            throw new RuntimeException("No tienes permisos para modificar esta empresa");
+        }
+
+        if (nombreEmpresa != null) {
+            empresa.setNombreEmpresa(nombreEmpresa);
+        }
+        if (descripcion != null) {
+            empresa.setDescripcion(descripcion);
+        }
+        if (url != null) {
+            empresa.setUrl(url);
+        }
+
+        return empresaRepository.save(empresa);
+    }
+
+    @Transactional
+    public Empresa actualizarLogo(Long id, MultipartFile logo, User usuarioAutenticado) throws IOException {
+        Empresa empresa = empresaRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + id));
+
+        // Seguridad: Solo ADMIN o el dueño pueden cambiar el logo
+        boolean esAdmin = "ADMIN".equals(usuarioAutenticado.getRol());
+        boolean esDueno = empresa.getUsuario().getId().equals(usuarioAutenticado.getId());
+
+        if (!esAdmin && !esDueno) {
+            throw new RuntimeException("No tienes permisos para cambiar el logo de esta empresa");
+        }
+
+        if (logo != null && !logo.isEmpty()) {
+            Map result = cloudinaryService.upload(logo);
+            String urlCloudinary = result.get("url").toString();
+
+            User user = empresa.getUsuario();
+            UserFoto foto = user.getFoto();
+            if (foto == null) {
+                foto = new UserFoto();
+            }
+            foto.setRuta(urlCloudinary);
+            foto.setNombreArchivo(logo.getOriginalFilename());
+            user.setFoto(foto);
+            
+            userRepository.save(user);
+        }
+
+        return empresa;
+    }
+
+    @Transactional
+    public Empresa actualizarEmailContacto(Long id, String email, User usuarioAutenticado) {
+        Empresa empresa = empresaRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + id));
+
+        // Seguridad: Solo ADMIN o el dueño pueden cambiar el email
+        boolean esAdmin = "ADMIN".equals(usuarioAutenticado.getRol());
+        boolean esDueno = empresa.getUsuario().getId().equals(usuarioAutenticado.getId());
+
+        if (!esAdmin && !esDueno) {
+            throw new RuntimeException("No tienes permisos para cambiar el email de esta empresa");
+        }
+
+        User user = empresa.getUsuario();
+        user.setEmail(email);
+        userRepository.save(user);
+
+        return empresa;
+    }
+
+    // ==================== ELIMINAR ====================
+
+    @Transactional
+    public void eliminarEmpresa(Long id, User usuarioAutenticado) {
+        Empresa empresa = empresaRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + id));
+
+        // Seguridad: Solo ADMIN puede eliminar empresas
+        boolean esAdmin = "ADMIN".equals(usuarioAutenticado.getRol());
+
+        if (!esAdmin) {
+            throw new RuntimeException("No tienes permisos para eliminar empresas");
+        }
+
+        // Eliminar el usuario (en cascada eliminará empresa, ofertas y fotos)
+        userRepository.deleteById(empresa.getUsuario().getId());
+    }
+
+    // ==================== VALIDACIONES ====================
+
+    @Transactional(readOnly = true)
+    public boolean existeEmpresaPorEmail(String email) {
+        return empresaRepository.findByUsuarioEmail(email).isPresent();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existeEmpresaPorNombre(String nombreEmpresa) {
+        return empresaRepository.findByNombreEmpresa(nombreEmpresa).isPresent();
     }
 }

@@ -32,11 +32,10 @@ public class EmailService {
         Map<String, Object> body = new HashMap<>();
         body.put("from", fromEmail);
         body.put("to", destinatario);
-        // CLAVE: Esto permite que la empresa responda directamente al candidato
+
         body.put("reply_to", emailCandidato); 
         body.put("subject", asuntoPersonalizado);
         
-        // Mejoramos el cuerpo del texto para que sea más profesional
         String textoFinal = String.format(
             "Has recibido una nueva postulación para: %s\n\n" +
             "Candidato: %s\n" +

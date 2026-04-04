@@ -1,8 +1,16 @@
-package Tablon.de.empleos.backend.Controller;
+package Tablon.de.empleos.backend.DTO.request;
 
-public class LoginRequest {
-    private String identificador; // Puede ser usuario o email
+public class LoginRequestDTO {
+    private String identificador;
     private String password;
+
+    public LoginRequestDTO() {
+    }
+
+    public LoginRequestDTO(String identificador, String password) {
+        this.identificador = identificador;
+        this.password = password;
+    }
 
     public String getIdentificador() {
         return identificador;

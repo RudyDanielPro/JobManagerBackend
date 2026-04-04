@@ -1,5 +1,10 @@
 package Tablon.de.empleos.backend.Entity;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -7,38 +12,32 @@ import jakarta.persistence.*;
 public class Empresa {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "nombre", nullable = false)
-    private String nombre;
+    private String nombreEmpresa;
 
     @Column(name = "descripcion", nullable = false, length = 1000)
     private String descripcion;
 
-    @Column(name = "correo_contacto", nullable = false)
-    private String correoContacto; // Este es el que usaremos para Resend
-
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "foto_id")
-    private UserFoto foto;
-
     @OneToOne
-    @JoinColumn(name = "usuario_id", nullable = false)
+    @MapsId
+    @JoinColumn(name = "id")
+    @JsonIgnore
     private User usuario;
 
     @Column(name = "pagina_web")
     private String url;
 
+    @OneToMany(mappedBy = "empresa", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OfertaLaboral> ofertas = new ArrayList<>();
+
     public Empresa() {
     }
 
-    public Empresa(String nombre, String descripcion, String correoContacto, UserFoto foto, User usuario, String url) {
-        this.nombre = nombre;
+    public Empresa(String nombre, String descripcion, String url) {
+        this.nombreEmpresa = nombre;
         this.descripcion = descripcion;
-        this.correoContacto = correoContacto;
-        this.foto = foto;
-        this.usuario = usuario;
         this.url = url;
     }
 
@@ -50,12 +49,12 @@ public class Empresa {
         this.id = id;
     }
 
-    public String getNombre() {
-        return nombre;
+    public String getNombreEmpresa() {
+        return nombreEmpresa;
     }
 
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
+    public void setNombreEmpresa(String nombreEmpresa) {
+        this.nombreEmpresa = nombreEmpresa;
     }
 
     public String getDescripcion() {
@@ -66,20 +65,30 @@ public class Empresa {
         this.descripcion = descripcion;
     }
 
-    public String getCorreoContacto() {
-        return correoContacto;
+    public String getUrl() {
+        return url;
     }
 
-    public void setCorreoContacto(String correoContacto) {
-        this.correoContacto = correoContacto;
+    public void setUrl(String url) {
+        this.url = url;
     }
 
-    public UserFoto getFoto() {
-        return foto;
+    public List<OfertaLaboral> getOfertas() {
+        return ofertas;
     }
 
-    public void setFoto(UserFoto foto) {
-        this.foto = foto;
+    public void setOfertas(List<OfertaLaboral> ofertas) {
+        this.ofertas = ofertas;
+    }
+
+    public void addOferta(OfertaLaboral oferta) {
+        ofertas.add(oferta);
+        oferta.setEmpresa(this);
+    }
+
+    public void removeOferta(OfertaLaboral oferta) {
+        ofertas.remove(oferta);
+        oferta.setEmpresa(null);
     }
 
     public User getUsuario() {
@@ -90,13 +99,6 @@ public class Empresa {
         this.usuario = usuario;
     }
 
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
     
+
 }

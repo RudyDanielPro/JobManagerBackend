@@ -1,54 +1,33 @@
-package Tablon.de.empleos.backend.Entity;
+package Tablon.de.empleos.backend.DTO.response;
 
 import java.time.LocalDateTime;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
-import jakarta.persistence.*;
-
-@Entity
-@Table(name = "Oferta_Laboral")
-public class OfertaLaboral {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class OfertaResponseDTO {
     private Long id;
-
-    @Column(name = "titulo", nullable = false)
     private String titulo;
-
-    @Column(name = "descripcion", nullable = false, length = 2000)
     private String descripcion;
-
-    @Column(name = "ubicacion", nullable = false)
     private String ubicacion;
-
-    @Column(name = "rango_salarial", nullable = false)
     private String rangoSalarial;
-
-    @Column(name = "fecha_creacion", nullable = false)
     private LocalDateTime fechaCreacion;
-
-    @Column(name = "estado")
     private boolean estado;
+    private String nombreEmpresa;
+    private Long empresaId;
 
-    @ManyToOne
-    @JoinColumn(name = "empresa_id", nullable = false)
-    @JsonIgnore
-    private Empresa empresa;
-
-    public OfertaLaboral() {
+    public OfertaResponseDTO() {
     }
 
-    public OfertaLaboral(String titulo, String descripcion, String ubicacion, String rangoSalarial,
-            LocalDateTime fechaCreacion, boolean estado, Empresa empresa) {
+    public OfertaResponseDTO(Long id, String titulo, String descripcion, String ubicacion,
+            String rangoSalarial, LocalDateTime fechaCreacion, boolean estado,
+            String nombreEmpresa, Long empresaId) {
+        this.id = id;
         this.titulo = titulo;
         this.descripcion = descripcion;
         this.ubicacion = ubicacion;
         this.rangoSalarial = rangoSalarial;
         this.fechaCreacion = fechaCreacion;
         this.estado = estado;
-        this.empresa = empresa;
+        this.nombreEmpresa = nombreEmpresa;
+        this.empresaId = empresaId;
     }
 
     public Long getId() {
@@ -107,12 +86,19 @@ public class OfertaLaboral {
         this.estado = estado;
     }
 
-    public Empresa getEmpresa() {
-        return empresa;
+    public String getNombreEmpresa() {
+        return nombreEmpresa;
     }
 
-    public void setEmpresa(Empresa empresa) {
-        this.empresa = empresa;
+    public void setNombreEmpresa(String nombreEmpresa) {
+        this.nombreEmpresa = nombreEmpresa;
     }
 
+    public Long getEmpresaId() {
+        return empresaId;
+    }
+
+    public void setEmpresaId(Long empresaId) {
+        this.empresaId = empresaId;
+    }
 }

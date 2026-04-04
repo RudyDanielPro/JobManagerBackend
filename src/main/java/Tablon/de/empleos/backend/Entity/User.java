@@ -13,26 +13,20 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name="Usuarios")
+@Table(name = "Usuarios")
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "nombre",nullable =  false)
-    private String nombre;
-    
-    @Column(name = "apellido",nullable = false)
-    private String apellido;
-
-    @Column(name = "email",nullable = false,unique = true)
+    @Column(name = "email", nullable = false, unique = true)
     private String email;
 
-    @Column(name = "usuario", nullable = false,unique = true)
+    @Column(name = "usuario", nullable = false, unique = true)
     private String usuario;
 
-    @Column(name = "password",nullable = false)
+    @Column(name = "password", nullable = false)
     @JsonIgnore
     private String password;
 
@@ -43,10 +37,14 @@ public class User {
     @JoinColumn(name = "foto_id")
     private UserFoto foto;
 
-    public User(String nombre, String apellido, String email, String usuario, String password, String rol,
+    @OneToOne(mappedBy = "usuario", cascade = CascadeType.ALL)
+    private Candidato candidato;
+
+    @OneToOne(mappedBy = "usuario", cascade = CascadeType.ALL)
+    private Empresa empresa;
+
+    public User(String email, String usuario, String password, String rol,
             UserFoto foto) {
-        this.nombre = nombre;
-        this.apellido = apellido;
         this.email = email;
         this.usuario = usuario;
         this.password = password;
@@ -63,22 +61,6 @@ public class User {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-
-    public String getApellido() {
-        return apellido;
-    }
-
-    public void setApellido(String apellido) {
-        this.apellido = apellido;
     }
 
     public String getEmail() {
@@ -121,7 +103,21 @@ public class User {
         this.foto = foto;
     }
 
-    
+    public Candidato getCandidato() {
+        return candidato;
+    }
+
+    public void setCandidato(Candidato candidato) {
+        this.candidato = candidato;
+    }
+
+    public Empresa getEmpresa() {
+        return empresa;
+    }
+
+    public void setEmpresa(Empresa empresa) {
+        this.empresa = empresa;
+    }
 
     
 

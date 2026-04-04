@@ -15,7 +15,7 @@ public class UserFoto {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length=1000)
+    @Column(nullable = false, length = 1000)
     private String ruta;
 
     @Column(length = 500)
