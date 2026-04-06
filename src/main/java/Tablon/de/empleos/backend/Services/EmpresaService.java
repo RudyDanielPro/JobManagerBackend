@@ -7,6 +7,7 @@ import Tablon.de.empleos.backend.Repository.EmpresaRepository;
 import Tablon.de.empleos.backend.Repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,36 +23,32 @@ public class EmpresaService {
     private final EmpresaRepository empresaRepository;
     private final UserRepository userRepository;
     private final CloudinaryService cloudinaryService;
+    private final PasswordEncoder passwordEncoder;
 
     public EmpresaService(EmpresaRepository empresaRepository,
                           UserRepository userRepository,
-                          CloudinaryService cloudinaryService) {
+                          CloudinaryService cloudinaryService,
+                          PasswordEncoder passwordEncoder) {
         this.empresaRepository = empresaRepository;
         this.userRepository = userRepository;
         this.cloudinaryService = cloudinaryService;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    // ==================== CREAR ====================
-
-    /**
-     * Registra una nueva empresa con su usuario asociado.
-     * La empresa y el usuario comparten el mismo ID.
-     */
     @Transactional
     public Empresa registrarEmpresa(User usuario, String nombreEmpresa, String descripcion, String url, MultipartFile logo) throws IOException {
-        // 1. Guardar el usuario primero
+
+        usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
+        
         usuario.setRol("reclutador");
         User userGuardado = userRepository.save(usuario);
 
-        // 2. Crear la empresa con el MISMO ID
         Empresa empresa = new Empresa(nombreEmpresa, descripcion, url);
         empresa.setId(userGuardado.getId());
         empresa.setUsuario(userGuardado);
 
-        // 3. Vincular la relación inversa
         userGuardado.setEmpresa(empresa);
 
-        // 4. Procesar logo si existe
         if (logo != null && !logo.isEmpty()) {
             Map result = cloudinaryService.upload(logo);
             String urlCloudinary = result.get("url").toString();
@@ -62,11 +59,8 @@ public class EmpresaService {
             userGuardado.setFoto(foto);
         }
 
-        // 5. Guardar empresa
         return empresaRepository.save(empresa);
     }
-
-    // ==================== BUSCAR ====================
 
     @Transactional(readOnly = true)
     public Optional<Empresa> buscarPorId(Long id) {
@@ -123,14 +117,11 @@ public class EmpresaService {
         return empresaRepository.findAllWithOfertas(pageable);
     }
 
-    // ==================== ACTUALIZAR ====================
-
     @Transactional
     public Empresa actualizarPerfil(Long id, String nombreEmpresa, String descripcion, String url, User usuarioAutenticado) {
         Empresa empresa = empresaRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + id));
 
-        // Seguridad: Solo ADMIN o el dueño de la empresa pueden editar
         boolean esAdmin = "ADMIN".equals(usuarioAutenticado.getRol());
         boolean esDueno = empresa.getUsuario().getId().equals(usuarioAutenticado.getId());
 
@@ -156,7 +147,6 @@ public class EmpresaService {
         Empresa empresa = empresaRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + id));
 
-        // Seguridad: Solo ADMIN o el dueño pueden cambiar el logo
         boolean esAdmin = "ADMIN".equals(usuarioAutenticado.getRol());
         boolean esDueno = empresa.getUsuario().getId().equals(usuarioAutenticado.getId());
 
@@ -188,7 +178,6 @@ public class EmpresaService {
         Empresa empresa = empresaRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + id));
 
-        // Seguridad: Solo ADMIN o el dueño pueden cambiar el email
         boolean esAdmin = "ADMIN".equals(usuarioAutenticado.getRol());
         boolean esDueno = empresa.getUsuario().getId().equals(usuarioAutenticado.getId());
 
@@ -203,25 +192,19 @@ public class EmpresaService {
         return empresa;
     }
 
-    // ==================== ELIMINAR ====================
-
     @Transactional
     public void eliminarEmpresa(Long id, User usuarioAutenticado) {
         Empresa empresa = empresaRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + id));
 
-        // Seguridad: Solo ADMIN puede eliminar empresas
         boolean esAdmin = "ADMIN".equals(usuarioAutenticado.getRol());
 
         if (!esAdmin) {
             throw new RuntimeException("No tienes permisos para eliminar empresas");
         }
 
-        // Eliminar el usuario (en cascada eliminará empresa, ofertas y fotos)
         userRepository.deleteById(empresa.getUsuario().getId());
     }
-
-    // ==================== VALIDACIONES ====================
 
     @Transactional(readOnly = true)
     public boolean existeEmpresaPorEmail(String email) {

@@ -7,6 +7,7 @@ import Tablon.de.empleos.backend.Repository.CandidatoRepository;
 import Tablon.de.empleos.backend.Repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,20 +23,24 @@ public class CandidatoService {
     private final CandidatoRepository candidatoRepository;
     private final UserRepository userRepository;
     private final CloudinaryService cloudinaryService;
+    private final PasswordEncoder passwordEncoder;
 
     public CandidatoService(CandidatoRepository candidatoRepository,
                             UserRepository userRepository,
-                            CloudinaryService cloudinaryService) {
+                            CloudinaryService cloudinaryService,
+                            PasswordEncoder passwordEncoder) {
         this.candidatoRepository = candidatoRepository;
         this.userRepository = userRepository;
         this.cloudinaryService = cloudinaryService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
     public Candidato registrarCandidato(User usuario, String nombre, String apellido, MultipartFile imagen) throws IOException {
 
+        usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
+        
         usuario.setRol("candidato");
-
         User userGuardado = userRepository.saveAndFlush(usuario);
 
         if (userGuardado.getId() == null) {

@@ -1,17 +1,21 @@
 package Tablon.de.empleos.backend.Security;
 
+import Tablon.de.empleos.backend.Entity.Candidato;
 import Tablon.de.empleos.backend.Entity.User;
 import Tablon.de.empleos.backend.Entity.UserFoto;
+import Tablon.de.empleos.backend.Repository.CandidatoRepository;
 import Tablon.de.empleos.backend.Repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
+    private final CandidatoRepository candidatoRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${ADMIN_USER}")
@@ -32,12 +36,16 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${ADMIN_APELLIDO}")
     private String adminApellido;
 
-    public DataInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public DataInitializer(UserRepository userRepository,
+                           CandidatoRepository candidatoRepository,
+                           PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.candidatoRepository = candidatoRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Override
+    @Transactional
     public void run(String... args) {
         try {
             boolean adminExists = userRepository.existsByUsuario(adminUser) || 
@@ -45,22 +53,35 @@ public class DataInitializer implements CommandLineRunner {
             
             if (!adminExists) {
                 User admin = new User();
-                admin.getCandidato().setNombre(adminNombre);
-                admin.getCandidato().setApellido(adminApellido);
                 admin.setUsuario(adminUser);
                 admin.setEmail(adminEmail);
                 admin.setPassword(passwordEncoder.encode(adminPass));
-                admin.setRol("ROLE_ADMIN");
+                admin.setRol("ADMIN");
 
-                UserFoto fotoAdmin = new UserFoto();
-                fotoAdmin.setRuta(adminFotoUrl);
-                fotoAdmin.setNombreArchivo("avatar_admin.png");
-                admin.setFoto(fotoAdmin);
+                if (adminFotoUrl != null && !adminFotoUrl.isEmpty()) {
+                    UserFoto fotoAdmin = new UserFoto();
+                    fotoAdmin.setRuta(adminFotoUrl);
+                    fotoAdmin.setNombreArchivo("avatar_admin.png");
+                    admin.setFoto(fotoAdmin);
+                }
 
-                userRepository.save(admin);
+                User savedAdmin = userRepository.save(admin);
+
+                Candidato adminCandidato = new Candidato(adminNombre, adminApellido);
+                adminCandidato.setId(savedAdmin.getId());
+                adminCandidato.setUsuario(savedAdmin);
+
+                savedAdmin.setCandidato(adminCandidato);
+
+                candidatoRepository.save(adminCandidato);
+
                 System.out.println("✅ SISTEMA: Usuario ADMIN creado con éxito!");
+                System.out.println("   Nombre: " + adminNombre + " " + adminApellido);
+                System.out.println("   Usuario: " + adminUser);
+                System.out.println("   Email: " + adminEmail);
+                System.out.println("   Rol: ADMIN");
             } else {
-                System.out.println("ℹ️ SISTEMA: El usuario ADMIN ya existe. No se requiere creación.");
+                System.out.println("ℹ️ SISTEMA: El usuario ADMIN ya existe.");
             }
         } catch (Exception e) {
             System.err.println("❌ ERROR al crear usuario ADMIN: " + e.getMessage());
