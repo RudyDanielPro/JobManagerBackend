@@ -56,4 +56,6 @@ public interface PostulacionRepository extends JpaRepository<Postulacion, Long> 
     List<Postulacion> findByOfertaLaboralIdWithDetails(@Param("ofertaId") Long ofertaId);
 
     Page<Postulacion> findByCandidatoIdAndEstado(Long candidatoId, boolean estado, Pageable pageable);
+
+    long countByEstadoFalse();
 }

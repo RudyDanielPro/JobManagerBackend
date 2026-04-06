@@ -40,7 +40,7 @@ public class PostulacionController {
                 postulacion.getCandidato().getNombre() + " " + postulacion.getCandidato().getApellido(),
                 postulacion.getCandidato().getUsuario().getEmail(),
                 postulacion.getOfertaLaboral().getTitulo(),
-                postulacion.getOfertaLaboral().getEmpresa().getNombreEmpresa());
+                postulacion.getOfertaLaboral().getEmpresa().getNombreEmpresa(), postulacion.getOfertaLaboral().getId());
     }
 
     @PostMapping(value = "/enviar", consumes = { "multipart/form-data" })

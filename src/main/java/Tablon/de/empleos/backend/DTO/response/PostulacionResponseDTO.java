@@ -10,13 +10,14 @@ public class PostulacionResponseDTO {
     private String emailCandidato;
     private String tituloOferta;
     private String nombreEmpresa;
+    private Long ofertaId;   
 
     public PostulacionResponseDTO() {
     }
 
     public PostulacionResponseDTO(Long id, LocalDateTime fechaPostulacion, boolean estado,
             String nombreCandidato, String emailCandidato,
-            String tituloOferta, String nombreEmpresa) {
+            String tituloOferta, String nombreEmpresa, Long ofertaId) {
         this.id = id;
         this.fechaPostulacion = fechaPostulacion;
         this.estado = estado;
@@ -24,6 +25,7 @@ public class PostulacionResponseDTO {
         this.emailCandidato = emailCandidato;
         this.tituloOferta = tituloOferta;
         this.nombreEmpresa = nombreEmpresa;
+        this.ofertaId = ofertaId;  
     }
 
     public Long getId() {
@@ -80,5 +82,13 @@ public class PostulacionResponseDTO {
 
     public void setNombreEmpresa(String nombreEmpresa) {
         this.nombreEmpresa = nombreEmpresa;
+    }
+
+    public Long getOfertaId() {
+        return ofertaId;
+    }
+
+    public void setOfertaId(Long ofertaId) {
+        this.ofertaId = ofertaId;
     }
 }

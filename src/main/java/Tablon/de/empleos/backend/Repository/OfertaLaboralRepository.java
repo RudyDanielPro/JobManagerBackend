@@ -58,4 +58,6 @@ public interface OfertaLaboralRepository extends JpaRepository<OfertaLaboral, Lo
     long countByEmpresaIdAndEstadoTrue(Long empresaId);
 
     boolean existsByEmpresaId(Long empresaId);
+
+    long countByEstadoTrue();
 }
