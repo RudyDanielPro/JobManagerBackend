@@ -16,7 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/empresas")
-@CrossOrigin(origins = "*")
+
 public class EmpresaController {
 
     private final EmpresaService empresaService;
