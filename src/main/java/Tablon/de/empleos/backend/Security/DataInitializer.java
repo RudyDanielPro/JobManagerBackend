@@ -52,6 +52,8 @@ public class DataInitializer implements CommandLineRunner {
                                   userRepository.existsByEmail(adminEmail);
             
             if (!adminExists) {
+                System.out.println("Creando usuario ADMIN...");
+                
                 User admin = new User();
                 admin.setUsuario(adminUser);
                 admin.setEmail(adminEmail);
@@ -65,7 +67,12 @@ public class DataInitializer implements CommandLineRunner {
                     admin.setFoto(fotoAdmin);
                 }
 
-                User savedAdmin = userRepository.save(admin);
+                User savedAdmin = userRepository.saveAndFlush(admin);
+                System.out.println("ID de usuario generado: " + savedAdmin.getId());
+
+                if (savedAdmin.getId() == null) {
+                    throw new RuntimeException("El ID del usuario es null");
+                }
 
                 Candidato adminCandidato = new Candidato(adminNombre, adminApellido);
                 adminCandidato.setId(savedAdmin.getId());
@@ -73,19 +80,22 @@ public class DataInitializer implements CommandLineRunner {
 
                 savedAdmin.setCandidato(adminCandidato);
 
-                candidatoRepository.save(adminCandidato);
+                candidatoRepository.saveAndFlush(adminCandidato);
+                
+                userRepository.save(savedAdmin);
 
-                System.out.println("✅ SISTEMA: Usuario ADMIN creado con éxito!");
+                System.out.println("SISTEMA: Usuario ADMIN creado con exito!");
                 System.out.println("   Nombre: " + adminNombre + " " + adminApellido);
                 System.out.println("   Usuario: " + adminUser);
                 System.out.println("   Email: " + adminEmail);
                 System.out.println("   Rol: ADMIN");
             } else {
-                System.out.println("ℹ️ SISTEMA: El usuario ADMIN ya existe.");
+                System.out.println("SISTEMA: El usuario ADMIN ya existe.");
             }
         } catch (Exception e) {
-            System.err.println("❌ ERROR al crear usuario ADMIN: " + e.getMessage());
+            System.err.println("ERROR al crear usuario ADMIN: " + e.getMessage());
             e.printStackTrace();
+            throw new RuntimeException("Error en DataInitializer", e);
         }
     }
 }
