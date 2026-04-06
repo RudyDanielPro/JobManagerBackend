@@ -35,7 +35,12 @@ public class CandidatoService {
     public Candidato registrarCandidato(User usuario, String nombre, String apellido, MultipartFile imagen) throws IOException {
 
         usuario.setRol("candidato");
-        User userGuardado = userRepository.save(usuario);
+
+        User userGuardado = userRepository.saveAndFlush(usuario);
+
+        if (userGuardado.getId() == null) {
+            throw new RuntimeException("Error: No se pudo generar el ID del usuario");
+        }
 
         Candidato candidato = new Candidato(nombre, apellido);
         candidato.setId(userGuardado.getId());
@@ -53,6 +58,8 @@ public class CandidatoService {
             userGuardado.setFoto(foto);
         }
 
+        userRepository.save(userGuardado);
+        
         return candidatoRepository.save(candidato);
     }
 
@@ -169,7 +176,7 @@ public class CandidatoService {
     @Transactional
     public void eliminarCandidato(Long id, User usuarioAutenticado) {
         Candidato candidato = candidatoRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Candidato no encontrado con ID: " + id));  // ✅ Corregido
+            .orElseThrow(() -> new RuntimeException("Candidato no encontrado con ID: " + id));
 
         boolean esAdmin = "ADMIN".equals(usuarioAutenticado.getRol());
 
