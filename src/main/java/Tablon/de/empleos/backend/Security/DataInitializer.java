@@ -3,7 +3,6 @@ package Tablon.de.empleos.backend.Security;
 import Tablon.de.empleos.backend.Entity.Admin;
 import Tablon.de.empleos.backend.Entity.User;
 import Tablon.de.empleos.backend.Entity.UserFoto;
-import Tablon.de.empleos.backend.Repository.AdminRepository;
 import Tablon.de.empleos.backend.Repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -15,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
-    private final AdminRepository adminRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${ADMIN_USER}")
@@ -36,11 +34,8 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${ADMIN_APELLIDO}")
     private String adminApellido;
 
-    public DataInitializer(UserRepository userRepository,
-            AdminRepository adminRepository,
-            PasswordEncoder passwordEncoder) {
+    public DataInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
-        this.adminRepository = adminRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -48,18 +43,22 @@ public class DataInitializer implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         try {
-            boolean adminExists = userRepository.existsByUsuario(adminUser) ||
-                    userRepository.existsByEmail(adminEmail);
-
+            boolean adminExists = userRepository.existsByUsuario(adminUser) || 
+                                  userRepository.existsByEmail(adminEmail);
+            
             if (!adminExists) {
                 System.out.println("Creando usuario ADMIN...");
 
-                // 1. Crear el User
+               
+                Admin adminEntity = new Admin(adminNombre, adminApellido);
+
                 User admin = new User();
                 admin.setUsuario(adminUser);
                 admin.setEmail(adminEmail);
                 admin.setPassword(passwordEncoder.encode(adminPass));
                 admin.setRol("ADMIN");
+                admin.setAdmin(adminEntity);  
+                adminEntity.setUsuario(admin); 
 
                 if (adminFotoUrl != null && !adminFotoUrl.isEmpty()) {
                     UserFoto fotoAdmin = new UserFoto();
@@ -68,17 +67,10 @@ public class DataInitializer implements CommandLineRunner {
                     admin.setFoto(fotoAdmin);
                 }
 
-                User savedAdmin = userRepository.saveAndFlush(admin);
+                User savedAdmin = userRepository.save(admin);
+                
                 System.out.println("ID de usuario generado: " + savedAdmin.getId());
-
-                Admin adminEntity = new Admin(adminNombre, adminApellido);
-                adminEntity.setId(savedAdmin.getId());
-                adminEntity.setUsuario(savedAdmin);
-
-                savedAdmin.setAdmin(adminEntity);
-
-                adminRepository.save(adminEntity);
-                userRepository.save(savedAdmin);
+                System.out.println("ID de admin: " + savedAdmin.getAdmin().getId());
 
                 System.out.println("SISTEMA: Usuario ADMIN creado con exito!");
                 System.out.println("   Nombre: " + adminNombre + " " + adminApellido);
