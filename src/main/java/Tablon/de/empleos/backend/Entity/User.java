@@ -43,6 +43,9 @@ public class User {
     @OneToOne(mappedBy = "usuario", cascade = CascadeType.ALL)
     private Empresa empresa;
 
+    @OneToOne(mappedBy = "usuario", cascade = CascadeType.ALL)
+    private Admin admin;
+
     public User(String email, String usuario, String password, String rol,
             UserFoto foto) {
         this.email = email;
@@ -119,6 +122,12 @@ public class User {
         this.empresa = empresa;
     }
 
-    
+    public Admin getAdmin() {
+        return admin;
+    }
+
+    public void setAdmin(Admin admin) {
+        this.admin = admin;
+    }
 
 }

@@ -1,9 +1,9 @@
 package Tablon.de.empleos.backend.Security;
 
-import Tablon.de.empleos.backend.Entity.Candidato;
+import Tablon.de.empleos.backend.Entity.Admin;
 import Tablon.de.empleos.backend.Entity.User;
 import Tablon.de.empleos.backend.Entity.UserFoto;
-import Tablon.de.empleos.backend.Repository.CandidatoRepository;
+import Tablon.de.empleos.backend.Repository.AdminRepository;
 import Tablon.de.empleos.backend.Repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
-    private final CandidatoRepository candidatoRepository;
+    private final AdminRepository adminRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${ADMIN_USER}")
@@ -37,10 +37,10 @@ public class DataInitializer implements CommandLineRunner {
     private String adminApellido;
 
     public DataInitializer(UserRepository userRepository,
-                           CandidatoRepository candidatoRepository,
-                           PasswordEncoder passwordEncoder) {
+            AdminRepository adminRepository,
+            PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
-        this.candidatoRepository = candidatoRepository;
+        this.adminRepository = adminRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -48,12 +48,13 @@ public class DataInitializer implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         try {
-            boolean adminExists = userRepository.existsByUsuario(adminUser) || 
-                                  userRepository.existsByEmail(adminEmail);
-            
+            boolean adminExists = userRepository.existsByUsuario(adminUser) ||
+                    userRepository.existsByEmail(adminEmail);
+
             if (!adminExists) {
                 System.out.println("Creando usuario ADMIN...");
-                
+
+                // 1. Crear el User
                 User admin = new User();
                 admin.setUsuario(adminUser);
                 admin.setEmail(adminEmail);
@@ -67,14 +68,17 @@ public class DataInitializer implements CommandLineRunner {
                     admin.setFoto(fotoAdmin);
                 }
 
-                Candidato adminCandidato = new Candidato(adminNombre, adminApellido);
-                adminCandidato.setUsuario(admin);
-                admin.setCandidato(adminCandidato);
-
                 User savedAdmin = userRepository.saveAndFlush(admin);
-                
                 System.out.println("ID de usuario generado: " + savedAdmin.getId());
-                System.out.println("ID de candidato: " + savedAdmin.getCandidato().getId());
+
+                Admin adminEntity = new Admin(adminNombre, adminApellido);
+                adminEntity.setId(savedAdmin.getId());
+                adminEntity.setUsuario(savedAdmin);
+
+                savedAdmin.setAdmin(adminEntity);
+
+                adminRepository.save(adminEntity);
+                userRepository.save(savedAdmin);
 
                 System.out.println("SISTEMA: Usuario ADMIN creado con exito!");
                 System.out.println("   Nombre: " + adminNombre + " " + adminApellido);
@@ -87,7 +91,6 @@ public class DataInitializer implements CommandLineRunner {
         } catch (Exception e) {
             System.err.println("ERROR al crear usuario ADMIN: " + e.getMessage());
             e.printStackTrace();
-            throw new RuntimeException("Error en DataInitializer", e);
         }
     }
 }
