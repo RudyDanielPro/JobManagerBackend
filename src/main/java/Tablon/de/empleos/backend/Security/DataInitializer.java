@@ -67,22 +67,14 @@ public class DataInitializer implements CommandLineRunner {
                     admin.setFoto(fotoAdmin);
                 }
 
-                User savedAdmin = userRepository.saveAndFlush(admin);
-                System.out.println("ID de usuario generado: " + savedAdmin.getId());
-
-                if (savedAdmin.getId() == null) {
-                    throw new RuntimeException("El ID del usuario es null");
-                }
-
                 Candidato adminCandidato = new Candidato(adminNombre, adminApellido);
-                adminCandidato.setId(savedAdmin.getId());
-                adminCandidato.setUsuario(savedAdmin);
+                adminCandidato.setUsuario(admin);
+                admin.setCandidato(adminCandidato);
 
-                savedAdmin.setCandidato(adminCandidato);
-
-                candidatoRepository.saveAndFlush(adminCandidato);
+                User savedAdmin = userRepository.saveAndFlush(admin);
                 
-                userRepository.save(savedAdmin);
+                System.out.println("ID de usuario generado: " + savedAdmin.getId());
+                System.out.println("ID de candidato: " + savedAdmin.getCandidato().getId());
 
                 System.out.println("SISTEMA: Usuario ADMIN creado con exito!");
                 System.out.println("   Nombre: " + adminNombre + " " + adminApellido);
