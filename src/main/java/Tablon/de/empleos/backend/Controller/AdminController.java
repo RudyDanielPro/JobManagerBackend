@@ -1,8 +1,12 @@
 package Tablon.de.empleos.backend.Controller;
 
-import Tablon.de.empleos.backend.DTO.response.*;
+import Tablon.de.empleos.backend.DTO.request.AdminUserCreateRequest;
+import Tablon.de.empleos.backend.DTO.request.AdminUserUpdateRequest;
 import Tablon.de.empleos.backend.Entity.*;
 import Tablon.de.empleos.backend.Repository.*;
+import Tablon.de.empleos.backend.Services.CandidatoService;
+import Tablon.de.empleos.backend.Services.EmpresaService;
+import Tablon.de.empleos.backend.Services.UserService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -26,6 +30,11 @@ public class AdminController {
     private final CandidatoRepository candidatoRepository;
     private final AdminRepository adminRepository;
     private final PasswordEncoder passwordEncoder;
+    
+    // Servicios necesarios
+    private final UserService userService;
+    private final CandidatoService candidatoService;
+    private final EmpresaService empresaService;
 
     public AdminController(UserRepository userRepository,
                            EmpresaRepository empresaRepository,
@@ -33,7 +42,10 @@ public class AdminController {
                            PostulacionRepository postulacionRepository,
                            CandidatoRepository candidatoRepository,
                            AdminRepository adminRepository,
-                           PasswordEncoder passwordEncoder) {
+                           PasswordEncoder passwordEncoder,
+                           UserService userService,
+                           CandidatoService candidatoService,
+                           EmpresaService empresaService) {
         this.userRepository = userRepository;
         this.empresaRepository = empresaRepository;
         this.ofertaRepository = ofertaRepository;
@@ -41,6 +53,9 @@ public class AdminController {
         this.candidatoRepository = candidatoRepository;
         this.adminRepository = adminRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userService = userService;
+        this.candidatoService = candidatoService;
+        this.empresaService = empresaService;
     }
 
     // ==================== ESTADÍSTICAS ====================
@@ -48,7 +63,7 @@ public class AdminController {
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getStats() {
         Map<String, Object> stats = new HashMap<>();
-        
+
         long totalUsers = userRepository.count();
         long totalCandidates = candidatoRepository.count();
         long totalCompanies = empresaRepository.count();
@@ -57,7 +72,7 @@ public class AdminController {
         long activeOffers = ofertaRepository.countByEstadoTrue();
         long totalPostulations = postulacionRepository.count();
         long pendingPostulations = postulacionRepository.countByEstadoFalse();
-        
+
         stats.put("totalUsers", totalUsers);
         stats.put("totalCandidates", totalCandidates);
         stats.put("totalCompanies", totalCompanies);
@@ -66,7 +81,7 @@ public class AdminController {
         stats.put("activeOffers", activeOffers);
         stats.put("totalPostulations", totalPostulations);
         stats.put("pendingPostulations", pendingPostulations);
-        
+
         return ResponseEntity.ok(stats);
     }
 
@@ -84,90 +99,103 @@ public class AdminController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // ✅ NUEVO: Crear usuario (con soporte para candidato, reclutador, admin)
     @PostMapping("/usuarios")
-    public ResponseEntity<User> crearUsuario(@RequestBody User user) {
-        // Encriptar contraseña
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        
-        User savedUser = userRepository.save(user);
-        
-        // Si es candidato, crear Candidato asociado
-        if ("CANDIDATO".equalsIgnoreCase(user.getRol()) && user.getCandidato() != null) {
-            Candidato candidato = user.getCandidato();
-            candidato.setId(savedUser.getId());
-            candidato.setUsuario(savedUser);
-            candidatoRepository.save(candidato);
-            savedUser.setCandidato(candidato);
+    public ResponseEntity<?> crearUsuario(@RequestBody AdminUserCreateRequest request) {
+        // Validaciones básicas
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            return ResponseEntity.badRequest().body("La contraseña es obligatoria");
         }
-        
-        // Si es reclutador, crear Empresa asociada
-        if ("RECRUITER".equalsIgnoreCase(user.getRol()) && user.getEmpresa() != null) {
-            Empresa empresa = user.getEmpresa();
-            empresa.setId(savedUser.getId());
-            empresa.setUsuario(savedUser);
-            empresaRepository.save(empresa);
-            savedUser.setEmpresa(empresa);
+        if (userService.existePorEmail(request.getEmail())) {
+            return ResponseEntity.badRequest().body("El email ya está registrado");
         }
-        
-        // Si es admin, crear Admin asociado
-        if ("ADMIN".equalsIgnoreCase(user.getRol()) && user.getAdmin() != null) {
-            Admin admin = user.getAdmin();
-            admin.setId(savedUser.getId());
-            admin.setUsuario(savedUser);
-            adminRepository.save(admin);
-            savedUser.setAdmin(admin);
+        if (userService.existePorUsuario(request.getUsuario())) {
+            return ResponseEntity.badRequest().body("El nombre de usuario ya existe");
         }
-        
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
+
+        // Crear el usuario base
+        User user = new User();
+        user.setEmail(request.getEmail());
+        user.setUsuario(request.getUsuario());
+        user.setPassword(request.getPassword()); // Se encriptará en el servicio
+        user.setRol(request.getRol().toUpperCase());
+
+        try {
+            if ("CANDIDATO".equalsIgnoreCase(request.getRol())) {
+                // Validar nombre y apellido
+                if (request.getNombre() == null || request.getApellido() == null) {
+                    return ResponseEntity.badRequest().body("Nombre y apellido son obligatorios para candidato");
+                }
+                candidatoService.registrarCandidato(user, request.getNombre(), request.getApellido(), null);
+            } else if ("RECRUITER".equalsIgnoreCase(request.getRol())) {
+                if (request.getNombreEmpresa() == null) {
+                    return ResponseEntity.badRequest().body("Nombre de empresa es obligatorio para reclutador");
+                }
+                empresaService.registrarEmpresa(user, request.getNombreEmpresa(),
+                        request.getDescripcion(), request.getUrl(), null);
+            } else if ("ADMIN".equalsIgnoreCase(request.getRol())) {
+                if (request.getNombre() == null || request.getApellido() == null) {
+                    return ResponseEntity.badRequest().body("Nombre y apellido son obligatorios para administrador");
+                }
+                // Crear admin manualmente
+                user.setPassword(passwordEncoder.encode(user.getPassword()));
+                User savedUser = userRepository.save(user);
+                Admin admin = new Admin(request.getNombre(), request.getApellido());
+                admin.setId(savedUser.getId());
+                admin.setUsuario(savedUser);
+                adminRepository.save(admin);
+                savedUser.setAdmin(admin);
+                userRepository.save(savedUser);
+            } else {
+                return ResponseEntity.badRequest().body("Rol no válido");
+            }
+
+            return ResponseEntity.status(HttpStatus.CREATED).body("Usuario creado exitosamente");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al crear usuario: " + e.getMessage());
+        }
     }
 
-    // ✅ NUEVO: Actualizar usuario
     @PutMapping("/usuarios/{id}")
-    public ResponseEntity<User> actualizarUsuario(@PathVariable Long id, @RequestBody User user) {
+    public ResponseEntity<?> actualizarUsuario(@PathVariable Long id, @RequestBody AdminUserUpdateRequest request) {
         User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        
-        if (user.getEmail() != null) existingUser.setEmail(user.getEmail());
-        if (user.getUsuario() != null) existingUser.setUsuario(user.getUsuario());
-        if (user.getRol() != null) existingUser.setRol(user.getRol());
-        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
-            existingUser.setPassword(passwordEncoder.encode(user.getPassword()));
+
+        // Actualizar campos básicos
+        if (request.getEmail() != null) existingUser.setEmail(request.getEmail());
+        if (request.getUsuario() != null) existingUser.setUsuario(request.getUsuario());
+        if (request.getRol() != null) existingUser.setRol(request.getRol());
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
         }
         
         User savedUser = userRepository.save(existingUser);
         
-        // Actualizar Candidato si existe
-        if ("CANDIDATO".equalsIgnoreCase(savedUser.getRol()) && user.getCandidato() != null) {
-            Candidato candidato = candidatoRepository.findById(id)
-                    .orElse(new Candidato());
-            if (user.getCandidato().getNombre() != null) candidato.setNombre(user.getCandidato().getNombre());
-            if (user.getCandidato().getApellido() != null) candidato.setApellido(user.getCandidato().getApellido());
+        // Actualizar datos específicos según rol
+        if ("CANDIDATO".equalsIgnoreCase(savedUser.getRol())) {
+            Candidato candidato = candidatoRepository.findById(id).orElse(new Candidato());
+            if (request.getNombre() != null) candidato.setNombre(request.getNombre());
+            if (request.getApellido() != null) candidato.setApellido(request.getApellido());
             candidato.setId(id);
             candidato.setUsuario(savedUser);
             candidatoRepository.save(candidato);
             savedUser.setCandidato(candidato);
-        }
-        
-        // Actualizar Empresa si existe
-        if ("RECRUITER".equalsIgnoreCase(savedUser.getRol()) && user.getEmpresa() != null) {
-            Empresa empresa = empresaRepository.findById(id)
-                    .orElse(new Empresa());
-            if (user.getEmpresa().getNombreEmpresa() != null) empresa.setNombreEmpresa(user.getEmpresa().getNombreEmpresa());
-            if (user.getEmpresa().getDescripcion() != null) empresa.setDescripcion(user.getEmpresa().getDescripcion());
-            if (user.getEmpresa().getUrl() != null) empresa.setUrl(user.getEmpresa().getUrl());
+        } 
+        else if ("RECRUITER".equalsIgnoreCase(savedUser.getRol())) {
+            Empresa empresa = empresaRepository.findById(id).orElse(new Empresa());
+            if (request.getNombreEmpresa() != null) empresa.setNombreEmpresa(request.getNombreEmpresa());
+            if (request.getDescripcion() != null) empresa.setDescripcion(request.getDescripcion());
+            if (request.getUrl() != null) empresa.setUrl(request.getUrl());
             empresa.setId(id);
             empresa.setUsuario(savedUser);
             empresaRepository.save(empresa);
             savedUser.setEmpresa(empresa);
         }
-        
-        // Actualizar Admin si existe
-        if ("ADMIN".equalsIgnoreCase(savedUser.getRol()) && user.getAdmin() != null) {
-            Admin admin = adminRepository.findById(id)
-                    .orElse(new Admin());
-            if (user.getAdmin().getNombre() != null) admin.setNombre(user.getAdmin().getNombre());
-            if (user.getAdmin().getApellido() != null) admin.setApellido(user.getAdmin().getApellido());
+        else if ("ADMIN".equalsIgnoreCase(savedUser.getRol())) {
+            Admin admin = adminRepository.findById(id).orElse(new Admin());
+            if (request.getNombre() != null) admin.setNombre(request.getNombre());
+            if (request.getApellido() != null) admin.setApellido(request.getApellido());
             admin.setId(id);
             admin.setUsuario(savedUser);
             adminRepository.save(admin);
@@ -234,7 +262,8 @@ public class AdminController {
     }
 
     @PatchMapping("/postulaciones/{id}/estado")
-    public ResponseEntity<Postulacion> cambiarEstadoPostulacion(@PathVariable Long id, @RequestBody Map<String, Boolean> body) {
+    public ResponseEntity<Postulacion> cambiarEstadoPostulacion(@PathVariable Long id,
+            @RequestBody Map<String, Boolean> body) {
         Postulacion postulacion = postulacionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Postulación no encontrada"));
         postulacion.setEstado(body.get("estado"));
@@ -254,8 +283,10 @@ public class AdminController {
     public ResponseEntity<Admin> updateAdmin(@PathVariable Long userId, @RequestBody Admin adminData) {
         Admin admin = adminRepository.findByUsuarioId(userId)
                 .orElse(new Admin());
-        if (adminData.getNombre() != null) admin.setNombre(adminData.getNombre());
-        if (adminData.getApellido() != null) admin.setApellido(adminData.getApellido());
+        if (adminData.getNombre() != null)
+            admin.setNombre(adminData.getNombre());
+        if (adminData.getApellido() != null)
+            admin.setApellido(adminData.getApellido());
         admin.setId(userId);
         return ResponseEntity.ok(adminRepository.save(admin));
     }
