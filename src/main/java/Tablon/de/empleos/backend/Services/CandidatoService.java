@@ -26,9 +26,9 @@ public class CandidatoService {
     private final PasswordEncoder passwordEncoder;
 
     public CandidatoService(CandidatoRepository candidatoRepository,
-                            UserRepository userRepository,
-                            CloudinaryService cloudinaryService,
-                            PasswordEncoder passwordEncoder) {
+            UserRepository userRepository,
+            CloudinaryService cloudinaryService,
+            PasswordEncoder passwordEncoder) {
         this.candidatoRepository = candidatoRepository;
         this.userRepository = userRepository;
         this.cloudinaryService = cloudinaryService;
@@ -36,41 +36,44 @@ public class CandidatoService {
     }
 
     @Transactional
-public Candidato registrarCandidato(User usuario, String nombre, String apellido, MultipartFile imagen) throws IOException {
+    public Candidato registrarCandidato(User usuario, String nombre, String apellido, MultipartFile imagen)
+            throws IOException {
+        
+        usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
+        usuario.setRol("CANDIDATO");
 
-    usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
     
-    usuario.setRol("CANDIDATO");
-    
-    User userGuardado = userRepository.save(usuario);
-    
-    Candidato candidato = new Candidato(nombre, apellido);
-    candidato.setId(userGuardado.getId());
-    candidato.setUsuario(userGuardado);
-    
-    userGuardado.setCandidato(candidato);
-    
-    candidatoRepository.save(candidato);
-    
-    userRepository.save(userGuardado);
-    
-    if (imagen != null && !imagen.isEmpty()) {
-        try {
-            Map result = cloudinaryService.upload(imagen);
-            String urlCloudinary = result.get("url").toString();
-            
-            UserFoto foto = new UserFoto();
-            foto.setRuta(urlCloudinary);
-            foto.setNombreArchivo(imagen.getOriginalFilename());
-            userGuardado.setFoto(foto);
-            userRepository.save(userGuardado);
-        } catch (Exception e) {
-            System.err.println("Error al subir foto: " + e.getMessage());
+        User userGuardado = userRepository.save(usuario);
+
+        Candidato candidato = new Candidato(nombre, apellido);
+        candidato.setId(userGuardado.getId());
+        candidato.setUsuario(userGuardado);
+
+        
+        candidato = candidatoRepository.save(candidato);
+
+       
+        userGuardado.setCandidato(candidato);
+        userRepository.save(userGuardado);
+
+        
+        if (imagen != null && !imagen.isEmpty()) {
+            try {
+                Map result = cloudinaryService.upload(imagen);
+                String urlCloudinary = result.get("url").toString();
+
+                UserFoto foto = new UserFoto();
+                foto.setRuta(urlCloudinary);
+                foto.setNombreArchivo(imagen.getOriginalFilename());
+                userGuardado.setFoto(foto);
+                userRepository.save(userGuardado);
+            } catch (Exception e) {
+                System.err.println("Error al subir foto: " + e.getMessage());
+            }
         }
+
+        return candidato;
     }
-    
-    return candidato;
-}
 
     @Transactional(readOnly = true)
     public Optional<Candidato> buscarPorId(Long id) {
@@ -135,7 +138,7 @@ public Candidato registrarCandidato(User usuario, String nombre, String apellido
     @Transactional
     public Candidato actualizarPerfil(Long id, String nombre, String apellido, User usuarioAutenticado) {
         Candidato candidato = candidatoRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Candidato no encontrado con ID: " + id));
+                .orElseThrow(() -> new RuntimeException("Candidato no encontrado con ID: " + id));
 
         boolean esMismoCandidato = candidato.getUsuario().getId().equals(usuarioAutenticado.getId());
         boolean esAdmin = "ADMIN".equals(usuarioAutenticado.getRol());
@@ -157,7 +160,7 @@ public Candidato registrarCandidato(User usuario, String nombre, String apellido
     @Transactional
     public Candidato actualizarFotoPerfil(Long id, MultipartFile imagen, User usuarioAutenticado) throws IOException {
         Candidato candidato = candidatoRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Candidato no encontrado con ID: " + id));
+                .orElseThrow(() -> new RuntimeException("Candidato no encontrado con ID: " + id));
 
         if (!candidato.getUsuario().getId().equals(usuarioAutenticado.getId())) {
             throw new RuntimeException("No tienes permisos para cambiar la foto de este candidato");
@@ -175,7 +178,7 @@ public Candidato registrarCandidato(User usuario, String nombre, String apellido
             foto.setRuta(urlCloudinary);
             foto.setNombreArchivo(imagen.getOriginalFilename());
             user.setFoto(foto);
-            
+
             userRepository.save(user);
         }
 
@@ -185,7 +188,7 @@ public Candidato registrarCandidato(User usuario, String nombre, String apellido
     @Transactional
     public void eliminarCandidato(Long id, User usuarioAutenticado) {
         Candidato candidato = candidatoRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Candidato no encontrado con ID: " + id));
+                .orElseThrow(() -> new RuntimeException("Candidato no encontrado con ID: " + id));
 
         boolean esAdmin = "ADMIN".equals(usuarioAutenticado.getRol());
 
