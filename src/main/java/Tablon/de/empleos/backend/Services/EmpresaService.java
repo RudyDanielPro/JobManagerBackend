@@ -26,9 +26,9 @@ public class EmpresaService {
     private final PasswordEncoder passwordEncoder;
 
     public EmpresaService(EmpresaRepository empresaRepository,
-                          UserRepository userRepository,
-                          CloudinaryService cloudinaryService,
-                          PasswordEncoder passwordEncoder) {
+            UserRepository userRepository,
+            CloudinaryService cloudinaryService,
+            PasswordEncoder passwordEncoder) {
         this.empresaRepository = empresaRepository;
         this.userRepository = userRepository;
         this.cloudinaryService = cloudinaryService;
@@ -36,30 +36,35 @@ public class EmpresaService {
     }
 
     @Transactional
-    public Empresa registrarEmpresa(User usuario, String nombreEmpresa, String descripcion, String url, MultipartFile logo) throws IOException {
-
+    public Empresa registrarEmpresa(User usuario, String nombreEmpresa, String descripcion, String url,
+            MultipartFile logo) throws IOException {
         usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
-        
-        usuario.setRol("reclutador");
+        usuario.setRol("RECRUITER");
         User userGuardado = userRepository.save(usuario);
 
         Empresa empresa = new Empresa(nombreEmpresa, descripcion, url);
         empresa.setId(userGuardado.getId());
         empresa.setUsuario(userGuardado);
-
         userGuardado.setEmpresa(empresa);
 
-        if (logo != null && !logo.isEmpty()) {
-            Map result = cloudinaryService.upload(logo);
-            String urlCloudinary = result.get("url").toString();
+        empresaRepository.save(empresa);
+        userRepository.save(userGuardado);
 
-            UserFoto foto = new UserFoto();
-            foto.setRuta(urlCloudinary);
-            foto.setNombreArchivo(logo.getOriginalFilename());
-            userGuardado.setFoto(foto);
+        if (logo != null && !logo.isEmpty()) {
+            try {
+                Map result = cloudinaryService.upload(logo);
+                String urlCloudinary = result.get("url").toString();
+                UserFoto foto = new UserFoto();
+                foto.setRuta(urlCloudinary);
+                foto.setNombreArchivo(logo.getOriginalFilename());
+                userGuardado.setFoto(foto);
+                userRepository.save(userGuardado);
+            } catch (Exception e) {
+                System.err.println("Error al subir logo: " + e.getMessage());
+            }
         }
 
-        return empresaRepository.save(empresa);
+        return empresa;
     }
 
     @Transactional(readOnly = true)
@@ -118,9 +123,10 @@ public class EmpresaService {
     }
 
     @Transactional
-    public Empresa actualizarPerfil(Long id, String nombreEmpresa, String descripcion, String url, User usuarioAutenticado) {
+    public Empresa actualizarPerfil(Long id, String nombreEmpresa, String descripcion, String url,
+            User usuarioAutenticado) {
         Empresa empresa = empresaRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + id));
+                .orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + id));
 
         boolean esAdmin = "ADMIN".equals(usuarioAutenticado.getRol());
         boolean esDueno = empresa.getUsuario().getId().equals(usuarioAutenticado.getId());
@@ -145,7 +151,7 @@ public class EmpresaService {
     @Transactional
     public Empresa actualizarLogo(Long id, MultipartFile logo, User usuarioAutenticado) throws IOException {
         Empresa empresa = empresaRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + id));
+                .orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + id));
 
         boolean esAdmin = "ADMIN".equals(usuarioAutenticado.getRol());
         boolean esDueno = empresa.getUsuario().getId().equals(usuarioAutenticado.getId());
@@ -166,7 +172,7 @@ public class EmpresaService {
             foto.setRuta(urlCloudinary);
             foto.setNombreArchivo(logo.getOriginalFilename());
             user.setFoto(foto);
-            
+
             userRepository.save(user);
         }
 
@@ -176,7 +182,7 @@ public class EmpresaService {
     @Transactional
     public Empresa actualizarEmailContacto(Long id, String email, User usuarioAutenticado) {
         Empresa empresa = empresaRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + id));
+                .orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + id));
 
         boolean esAdmin = "ADMIN".equals(usuarioAutenticado.getRol());
         boolean esDueno = empresa.getUsuario().getId().equals(usuarioAutenticado.getId());
@@ -195,7 +201,7 @@ public class EmpresaService {
     @Transactional
     public void eliminarEmpresa(Long id, User usuarioAutenticado) {
         Empresa empresa = empresaRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + id));
+                .orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + id));
 
         boolean esAdmin = "ADMIN".equals(usuarioAutenticado.getRol());
 

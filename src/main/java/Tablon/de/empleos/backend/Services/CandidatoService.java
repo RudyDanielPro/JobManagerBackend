@@ -36,37 +36,41 @@ public class CandidatoService {
     }
 
     @Transactional
-    public Candidato registrarCandidato(User usuario, String nombre, String apellido, MultipartFile imagen) throws IOException {
+public Candidato registrarCandidato(User usuario, String nombre, String apellido, MultipartFile imagen) throws IOException {
 
-        usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
-        
-        usuario.setRol("candidato");
-        User userGuardado = userRepository.saveAndFlush(usuario);
-
-        if (userGuardado.getId() == null) {
-            throw new RuntimeException("Error: No se pudo generar el ID del usuario");
-        }
-
-        Candidato candidato = new Candidato(nombre, apellido);
-        candidato.setId(userGuardado.getId());
-        candidato.setUsuario(userGuardado);
-
-        userGuardado.setCandidato(candidato);
-
-        if (imagen != null && !imagen.isEmpty()) {
+    usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
+    
+    usuario.setRol("CANDIDATO");
+    
+    User userGuardado = userRepository.save(usuario);
+    
+    Candidato candidato = new Candidato(nombre, apellido);
+    candidato.setId(userGuardado.getId());
+    candidato.setUsuario(userGuardado);
+    
+    userGuardado.setCandidato(candidato);
+    
+    candidatoRepository.save(candidato);
+    
+    userRepository.save(userGuardado);
+    
+    if (imagen != null && !imagen.isEmpty()) {
+        try {
             Map result = cloudinaryService.upload(imagen);
             String urlCloudinary = result.get("url").toString();
-
+            
             UserFoto foto = new UserFoto();
             foto.setRuta(urlCloudinary);
             foto.setNombreArchivo(imagen.getOriginalFilename());
             userGuardado.setFoto(foto);
+            userRepository.save(userGuardado);
+        } catch (Exception e) {
+            System.err.println("Error al subir foto: " + e.getMessage());
         }
-
-        userRepository.save(userGuardado);
-        
-        return candidatoRepository.save(candidato);
     }
+    
+    return candidato;
+}
 
     @Transactional(readOnly = true)
     public Optional<Candidato> buscarPorId(Long id) {
