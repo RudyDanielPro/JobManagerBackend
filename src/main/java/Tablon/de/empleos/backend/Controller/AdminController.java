@@ -1,6 +1,5 @@
 package Tablon.de.empleos.backend.Controller;
 
-import Tablon.de.empleos.backend.DTO.request.AdminUserCreateRequest;
 import Tablon.de.empleos.backend.DTO.request.AdminUserUpdateRequest;
 import Tablon.de.empleos.backend.Entity.*;
 import Tablon.de.empleos.backend.Repository.*;
@@ -31,7 +30,6 @@ public class AdminController {
     private final AdminRepository adminRepository;
     private final PasswordEncoder passwordEncoder;
     
-    // Servicios necesarios
     private final UserService userService;
     private final CandidatoService candidatoService;
     private final EmpresaService empresaService;
@@ -58,8 +56,6 @@ public class AdminController {
         this.empresaService = empresaService;
     }
 
-    // ==================== ESTADÍSTICAS ====================
-
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getStats() {
         Map<String, Object> stats = new HashMap<>();
@@ -85,8 +81,6 @@ public class AdminController {
         return ResponseEntity.ok(stats);
     }
 
-    // ==================== USUARIOS ====================
-
     @GetMapping("/usuarios")
     public ResponseEntity<Page<User>> getUsuarios(Pageable pageable) {
         return ResponseEntity.ok(userRepository.findAll(pageable));
@@ -100,50 +94,78 @@ public class AdminController {
     }
 
     @PostMapping("/usuarios")
-    public ResponseEntity<?> crearUsuario(@RequestBody AdminUserCreateRequest request) {
+    public ResponseEntity<?> crearUsuario(@RequestBody Map<String, Object> request) {
+        System.out.println("=== DEBUG BACKEND ===");
+        System.out.println("Request: " + request);
+        
+        // Extraer datos básicos
+        String email = (String) request.get("email");
+        String usuario = (String) request.get("usuario");
+        String password = (String) request.get("password");
+        String rol = (String) request.get("rol");
+        
         // Validaciones básicas
-        if (request.getPassword() == null || request.getPassword().isBlank()) {
+        if (password == null || password.isBlank()) {
             return ResponseEntity.badRequest().body("La contraseña es obligatoria");
         }
-        if (userService.existePorEmail(request.getEmail())) {
+        if (userService.existePorEmail(email)) {
             return ResponseEntity.badRequest().body("El email ya está registrado");
         }
-        if (userService.existePorUsuario(request.getUsuario())) {
+        if (userService.existePorUsuario(usuario)) {
             return ResponseEntity.badRequest().body("El nombre de usuario ya existe");
         }
 
-        // Crear el usuario base
         User user = new User();
-        user.setEmail(request.getEmail());
-        user.setUsuario(request.getUsuario());
-        user.setPassword(request.getPassword()); // Se encriptará en el servicio
-        user.setRol(request.getRol().toUpperCase());
+        user.setEmail(email);
+        user.setUsuario(usuario);
+        user.setPassword(password);
+        user.setRol(rol.toUpperCase());
 
         try {
-            if ("CANDIDATO".equalsIgnoreCase(request.getRol())) {
-                // Validar nombre y apellido
-                if (request.getNombre() == null || request.getApellido() == null) {
+            if ("CANDIDATO".equalsIgnoreCase(rol)) {
+                // Extraer datos del objeto candidato
+                Map<String, Object> candidato = (Map<String, Object>) request.get("candidato");
+                String nombre = (String) candidato.get("nombre");
+                String apellido = (String) candidato.get("apellido");
+                
+                System.out.println("Nombre: " + nombre);
+                System.out.println("Apellido: " + apellido);
+                
+                if (nombre == null || apellido == null || nombre.isBlank() || apellido.isBlank()) {
                     return ResponseEntity.badRequest().body("Nombre y apellido son obligatorios para candidato");
                 }
-                candidatoService.registrarCandidato(user, request.getNombre(), request.getApellido(), null);
-            } else if ("RECRUITER".equalsIgnoreCase(request.getRol())) {
-                if (request.getNombreEmpresa() == null) {
+                
+                candidatoService.registrarCandidato(user, nombre, apellido, null);
+                System.out.println("Candidato creado exitosamente");
+                
+            } else if ("RECRUITER".equalsIgnoreCase(rol)) {
+                Map<String, Object> empresa = (Map<String, Object>) request.get("empresa");
+                String nombreEmpresa = (String) empresa.get("nombreEmpresa");
+                String descripcion = (String) empresa.get("descripcion");
+                String url = (String) empresa.get("url");
+                
+                if (nombreEmpresa == null || nombreEmpresa.isBlank()) {
                     return ResponseEntity.badRequest().body("Nombre de empresa es obligatorio para reclutador");
                 }
-                empresaService.registrarEmpresa(user, request.getNombreEmpresa(),
-                        request.getDescripcion(), request.getUrl(), null);
-            } else if ("ADMIN".equalsIgnoreCase(request.getRol())) {
-                if (request.getNombre() == null || request.getApellido() == null) {
+                
+                empresaService.registrarEmpresa(user, nombreEmpresa, descripcion, url, null);
+                
+            } else if ("ADMIN".equalsIgnoreCase(rol)) {
+                Map<String, Object> admin = (Map<String, Object>) request.get("admin");
+                String nombre = (String) admin.get("nombre");
+                String apellido = (String) admin.get("apellido");
+                
+                if (nombre == null || apellido == null || nombre.isBlank() || apellido.isBlank()) {
                     return ResponseEntity.badRequest().body("Nombre y apellido son obligatorios para administrador");
                 }
-                // Crear admin manualmente
+                
                 user.setPassword(passwordEncoder.encode(user.getPassword()));
                 User savedUser = userRepository.save(user);
-                Admin admin = new Admin(request.getNombre(), request.getApellido());
-                admin.setId(savedUser.getId());
-                admin.setUsuario(savedUser);
-                adminRepository.save(admin);
-                savedUser.setAdmin(admin);
+                Admin adminEntity = new Admin(nombre, apellido);
+                adminEntity.setId(savedUser.getId());
+                adminEntity.setUsuario(savedUser);
+                adminRepository.save(adminEntity);
+                savedUser.setAdmin(adminEntity);
                 userRepository.save(savedUser);
             } else {
                 return ResponseEntity.badRequest().body("Rol no válido");
@@ -158,25 +180,31 @@ public class AdminController {
     }
 
     @PutMapping("/usuarios/{id}")
-    public ResponseEntity<?> actualizarUsuario(@PathVariable Long id, @RequestBody AdminUserUpdateRequest request) {
+    public ResponseEntity<?> actualizarUsuario(@PathVariable Long id, @RequestBody Map<String, Object> request) {
         User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
         // Actualizar campos básicos
-        if (request.getEmail() != null) existingUser.setEmail(request.getEmail());
-        if (request.getUsuario() != null) existingUser.setUsuario(request.getUsuario());
-        if (request.getRol() != null) existingUser.setRol(request.getRol());
-        if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
+        if (request.get("email") != null) existingUser.setEmail((String) request.get("email"));
+        if (request.get("usuario") != null) existingUser.setUsuario((String) request.get("usuario"));
+        if (request.get("rol") != null) existingUser.setRol((String) request.get("rol"));
+        if (request.get("password") != null && !((String) request.get("password")).isBlank()) {
+            existingUser.setPassword(passwordEncoder.encode((String) request.get("password")));
         }
         
         User savedUser = userRepository.save(existingUser);
         
-        // Actualizar datos específicos según rol
         if ("CANDIDATO".equalsIgnoreCase(savedUser.getRol())) {
             Candidato candidato = candidatoRepository.findById(id).orElse(new Candidato());
-            if (request.getNombre() != null) candidato.setNombre(request.getNombre());
-            if (request.getApellido() != null) candidato.setApellido(request.getApellido());
+            Map<String, Object> candidatoData = (Map<String, Object>) request.get("candidato");
+            
+            if (candidatoData != null) {
+                String nombre = (String) candidatoData.get("nombre");
+                String apellido = (String) candidatoData.get("apellido");
+                if (nombre != null) candidato.setNombre(nombre);
+                if (apellido != null) candidato.setApellido(apellido);
+            }
+            
             candidato.setId(id);
             candidato.setUsuario(savedUser);
             candidatoRepository.save(candidato);
@@ -184,9 +212,17 @@ public class AdminController {
         } 
         else if ("RECRUITER".equalsIgnoreCase(savedUser.getRol())) {
             Empresa empresa = empresaRepository.findById(id).orElse(new Empresa());
-            if (request.getNombreEmpresa() != null) empresa.setNombreEmpresa(request.getNombreEmpresa());
-            if (request.getDescripcion() != null) empresa.setDescripcion(request.getDescripcion());
-            if (request.getUrl() != null) empresa.setUrl(request.getUrl());
+            Map<String, Object> empresaData = (Map<String, Object>) request.get("empresa");
+            
+            if (empresaData != null) {
+                String nombreEmpresa = (String) empresaData.get("nombreEmpresa");
+                String descripcion = (String) empresaData.get("descripcion");
+                String url = (String) empresaData.get("url");
+                if (nombreEmpresa != null) empresa.setNombreEmpresa(nombreEmpresa);
+                if (descripcion != null) empresa.setDescripcion(descripcion);
+                if (url != null) empresa.setUrl(url);
+            }
+            
             empresa.setId(id);
             empresa.setUsuario(savedUser);
             empresaRepository.save(empresa);
@@ -194,8 +230,15 @@ public class AdminController {
         }
         else if ("ADMIN".equalsIgnoreCase(savedUser.getRol())) {
             Admin admin = adminRepository.findById(id).orElse(new Admin());
-            if (request.getNombre() != null) admin.setNombre(request.getNombre());
-            if (request.getApellido() != null) admin.setApellido(request.getApellido());
+            Map<String, Object> adminData = (Map<String, Object>) request.get("admin");
+            
+            if (adminData != null) {
+                String nombre = (String) adminData.get("nombre");
+                String apellido = (String) adminData.get("apellido");
+                if (nombre != null) admin.setNombre(nombre);
+                if (apellido != null) admin.setApellido(apellido);
+            }
+            
             admin.setId(id);
             admin.setUsuario(savedUser);
             adminRepository.save(admin);
@@ -220,8 +263,6 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
-    // ==================== EMPRESAS ====================
-
     @GetMapping("/empresas")
     public ResponseEntity<Page<Empresa>> getEmpresas(Pageable pageable) {
         return ResponseEntity.ok(empresaRepository.findAll(pageable));
@@ -232,8 +273,6 @@ public class AdminController {
         empresaRepository.deleteById(id);
         return ResponseEntity.noContent().build();
     }
-
-    // ==================== OFERTAS ====================
 
     @GetMapping("/ofertas")
     public ResponseEntity<Page<OfertaLaboral>> getOfertas(Pageable pageable) {
@@ -254,8 +293,6 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
-    // ==================== POSTULACIONES ====================
-
     @GetMapping("/postulaciones")
     public ResponseEntity<Page<Postulacion>> getPostulaciones(Pageable pageable) {
         return ResponseEntity.ok(postulacionRepository.findAll(pageable));
@@ -269,8 +306,6 @@ public class AdminController {
         postulacion.setEstado(body.get("estado"));
         return ResponseEntity.ok(postulacionRepository.save(postulacion));
     }
-
-    // ==================== ADMIN ====================
 
     @GetMapping("/usuarios/{userId}/admin")
     public ResponseEntity<Admin> getAdminByUserId(@PathVariable Long userId) {
