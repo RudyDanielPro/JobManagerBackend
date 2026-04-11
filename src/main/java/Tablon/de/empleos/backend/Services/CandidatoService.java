@@ -42,21 +42,15 @@ public class CandidatoService {
         usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
         usuario.setRol("CANDIDATO");
 
-    
+        Candidato candidato = new Candidato(nombre, apellido);
+     
+        candidato.setUsuario(usuario);
+        usuario.setCandidato(candidato);
+
         User userGuardado = userRepository.save(usuario);
 
-        Candidato candidato = new Candidato(nombre, apellido);
-        candidato.setId(userGuardado.getId());
-        candidato.setUsuario(userGuardado);
+        Candidato candidatoGuardado = userGuardado.getCandidato();
 
-        
-        candidato = candidatoRepository.save(candidato);
-
-       
-        userGuardado.setCandidato(candidato);
-        userRepository.save(userGuardado);
-
-        
         if (imagen != null && !imagen.isEmpty()) {
             try {
                 Map result = cloudinaryService.upload(imagen);
@@ -72,7 +66,7 @@ public class CandidatoService {
             }
         }
 
-        return candidato;
+        return candidatoGuardado;
     }
 
     @Transactional(readOnly = true)

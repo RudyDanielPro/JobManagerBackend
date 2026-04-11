@@ -29,21 +29,21 @@ public class AdminController {
     private final CandidatoRepository candidatoRepository;
     private final AdminRepository adminRepository;
     private final PasswordEncoder passwordEncoder;
-    
+
     private final UserService userService;
     private final CandidatoService candidatoService;
     private final EmpresaService empresaService;
 
     public AdminController(UserRepository userRepository,
-                           EmpresaRepository empresaRepository,
-                           OfertaLaboralRepository ofertaRepository,
-                           PostulacionRepository postulacionRepository,
-                           CandidatoRepository candidatoRepository,
-                           AdminRepository adminRepository,
-                           PasswordEncoder passwordEncoder,
-                           UserService userService,
-                           CandidatoService candidatoService,
-                           EmpresaService empresaService) {
+            EmpresaRepository empresaRepository,
+            OfertaLaboralRepository ofertaRepository,
+            PostulacionRepository postulacionRepository,
+            CandidatoRepository candidatoRepository,
+            AdminRepository adminRepository,
+            PasswordEncoder passwordEncoder,
+            UserService userService,
+            CandidatoService candidatoService,
+            EmpresaService empresaService) {
         this.userRepository = userRepository;
         this.empresaRepository = empresaRepository;
         this.ofertaRepository = ofertaRepository;
@@ -97,13 +97,13 @@ public class AdminController {
     public ResponseEntity<?> crearUsuario(@RequestBody Map<String, Object> request) {
         System.out.println("=== DEBUG BACKEND ===");
         System.out.println("Request: " + request);
-        
+
         // Extraer datos básicos
         String email = (String) request.get("email");
         String usuario = (String) request.get("usuario");
         String password = (String) request.get("password");
         String rol = (String) request.get("rol");
-        
+
         // Validaciones básicas
         if (password == null || password.isBlank()) {
             return ResponseEntity.badRequest().body("La contraseña es obligatoria");
@@ -127,46 +127,46 @@ public class AdminController {
                 Map<String, Object> candidato = (Map<String, Object>) request.get("candidato");
                 String nombre = (String) candidato.get("nombre");
                 String apellido = (String) candidato.get("apellido");
-                
+
                 System.out.println("Nombre: " + nombre);
                 System.out.println("Apellido: " + apellido);
-                
+
                 if (nombre == null || apellido == null || nombre.isBlank() || apellido.isBlank()) {
                     return ResponseEntity.badRequest().body("Nombre y apellido son obligatorios para candidato");
                 }
-                
+
                 candidatoService.registrarCandidato(user, nombre, apellido, null);
                 System.out.println("Candidato creado exitosamente");
-                
+
             } else if ("RECRUITER".equalsIgnoreCase(rol)) {
                 Map<String, Object> empresa = (Map<String, Object>) request.get("empresa");
                 String nombreEmpresa = (String) empresa.get("nombreEmpresa");
                 String descripcion = (String) empresa.get("descripcion");
                 String url = (String) empresa.get("url");
-                
+
                 if (nombreEmpresa == null || nombreEmpresa.isBlank()) {
                     return ResponseEntity.badRequest().body("Nombre de empresa es obligatorio para reclutador");
                 }
-                
+
                 empresaService.registrarEmpresa(user, nombreEmpresa, descripcion, url, null);
-                
+
             } else if ("ADMIN".equalsIgnoreCase(rol)) {
                 Map<String, Object> admin = (Map<String, Object>) request.get("admin");
                 String nombre = (String) admin.get("nombre");
                 String apellido = (String) admin.get("apellido");
-                
+
                 if (nombre == null || apellido == null || nombre.isBlank() || apellido.isBlank()) {
                     return ResponseEntity.badRequest().body("Nombre y apellido son obligatorios para administrador");
                 }
-                
+
                 user.setPassword(passwordEncoder.encode(user.getPassword()));
-                User savedUser = userRepository.save(user);
+
                 Admin adminEntity = new Admin(nombre, apellido);
-                adminEntity.setId(savedUser.getId());
-                adminEntity.setUsuario(savedUser);
-                adminRepository.save(adminEntity);
-                savedUser.setAdmin(adminEntity);
-                userRepository.save(savedUser);
+
+                adminEntity.setUsuario(user);
+                user.setAdmin(adminEntity);
+
+                userRepository.save(user);
             } else {
                 return ResponseEntity.badRequest().body("Rol no válido");
             }
@@ -184,67 +184,66 @@ public class AdminController {
         User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        // Actualizar campos básicos
-        if (request.get("email") != null) existingUser.setEmail((String) request.get("email"));
-        if (request.get("usuario") != null) existingUser.setUsuario((String) request.get("usuario"));
-        if (request.get("rol") != null) existingUser.setRol((String) request.get("rol"));
+        if (request.get("email") != null)
+            existingUser.setEmail((String) request.get("email"));
+        if (request.get("usuario") != null)
+            existingUser.setUsuario((String) request.get("usuario"));
+        if (request.get("rol") != null)
+            existingUser.setRol((String) request.get("rol"));
         if (request.get("password") != null && !((String) request.get("password")).isBlank()) {
             existingUser.setPassword(passwordEncoder.encode((String) request.get("password")));
         }
-        
+
+        String rol = existingUser.getRol();
+
+        if ("CANDIDATO".equalsIgnoreCase(rol)) {
+            Candidato candidato = existingUser.getCandidato();
+            if (candidato == null) {
+                candidato = new Candidato();
+                candidato.setUsuario(existingUser);
+                existingUser.setCandidato(candidato);
+            }
+            Map<String, Object> data = (Map<String, Object>) request.get("candidato");
+            if (data != null) {
+                if (data.get("nombre") != null)
+                    candidato.setNombre((String) data.get("nombre"));
+                if (data.get("apellido") != null)
+                    candidato.setApellido((String) data.get("apellido"));
+            }
+        } else if ("RECRUITER".equalsIgnoreCase(rol)) {
+            Empresa empresa = existingUser.getEmpresa();
+            if (empresa == null) {
+                empresa = new Empresa();
+                empresa.setUsuario(existingUser);
+                existingUser.setEmpresa(empresa);
+            }
+            Map<String, Object> data = (Map<String, Object>) request.get("empresa");
+            if (data != null) {
+                if (data.get("nombreEmpresa") != null)
+                    empresa.setNombreEmpresa((String) data.get("nombreEmpresa"));
+                if (data.get("descripcion") != null)
+                    empresa.setDescripcion((String) data.get("descripcion"));
+                if (data.get("url") != null)
+                    empresa.setUrl((String) data.get("url"));
+            }
+        } else if ("ADMIN".equalsIgnoreCase(rol)) {
+            Admin admin = existingUser.getAdmin();
+            if (admin == null) {
+                admin = new Admin();
+                admin.setUsuario(existingUser);
+                existingUser.setAdmin(admin);
+            }
+            Map<String, Object> data = (Map<String, Object>) request.get("admin");
+            if (data != null) {
+                if (data.get("nombre") != null)
+                    admin.setNombre((String) data.get("nombre"));
+                if (data.get("apellido") != null)
+                    admin.setApellido((String) data.get("apellido"));
+            }
+        }
+
         User savedUser = userRepository.save(existingUser);
-        
-        if ("CANDIDATO".equalsIgnoreCase(savedUser.getRol())) {
-            Candidato candidato = candidatoRepository.findById(id).orElse(new Candidato());
-            Map<String, Object> candidatoData = (Map<String, Object>) request.get("candidato");
-            
-            if (candidatoData != null) {
-                String nombre = (String) candidatoData.get("nombre");
-                String apellido = (String) candidatoData.get("apellido");
-                if (nombre != null) candidato.setNombre(nombre);
-                if (apellido != null) candidato.setApellido(apellido);
-            }
-            
-            candidato.setId(id);
-            candidato.setUsuario(savedUser);
-            candidatoRepository.save(candidato);
-            savedUser.setCandidato(candidato);
-        } 
-        else if ("RECRUITER".equalsIgnoreCase(savedUser.getRol())) {
-            Empresa empresa = empresaRepository.findById(id).orElse(new Empresa());
-            Map<String, Object> empresaData = (Map<String, Object>) request.get("empresa");
-            
-            if (empresaData != null) {
-                String nombreEmpresa = (String) empresaData.get("nombreEmpresa");
-                String descripcion = (String) empresaData.get("descripcion");
-                String url = (String) empresaData.get("url");
-                if (nombreEmpresa != null) empresa.setNombreEmpresa(nombreEmpresa);
-                if (descripcion != null) empresa.setDescripcion(descripcion);
-                if (url != null) empresa.setUrl(url);
-            }
-            
-            empresa.setId(id);
-            empresa.setUsuario(savedUser);
-            empresaRepository.save(empresa);
-            savedUser.setEmpresa(empresa);
-        }
-        else if ("ADMIN".equalsIgnoreCase(savedUser.getRol())) {
-            Admin admin = adminRepository.findById(id).orElse(new Admin());
-            Map<String, Object> adminData = (Map<String, Object>) request.get("admin");
-            
-            if (adminData != null) {
-                String nombre = (String) adminData.get("nombre");
-                String apellido = (String) adminData.get("apellido");
-                if (nombre != null) admin.setNombre(nombre);
-                if (apellido != null) admin.setApellido(apellido);
-            }
-            
-            admin.setId(id);
-            admin.setUsuario(savedUser);
-            adminRepository.save(admin);
-            savedUser.setAdmin(admin);
-        }
-        
+
         return ResponseEntity.ok(savedUser);
     }
 
@@ -316,13 +315,22 @@ public class AdminController {
 
     @PutMapping("/usuarios/{userId}/admin")
     public ResponseEntity<Admin> updateAdmin(@PathVariable Long userId, @RequestBody Admin adminData) {
-        Admin admin = adminRepository.findByUsuarioId(userId)
-                .orElse(new Admin());
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        Admin admin = user.getAdmin();
+        if (admin == null) {
+            admin = new Admin();
+            admin.setUsuario(user);
+            user.setAdmin(admin);
+        }
+
         if (adminData.getNombre() != null)
             admin.setNombre(adminData.getNombre());
         if (adminData.getApellido() != null)
             admin.setApellido(adminData.getApellido());
-        admin.setId(userId);
-        return ResponseEntity.ok(adminRepository.save(admin));
+
+        userRepository.save(user);
+        return ResponseEntity.ok(user.getAdmin());
     }
 }
