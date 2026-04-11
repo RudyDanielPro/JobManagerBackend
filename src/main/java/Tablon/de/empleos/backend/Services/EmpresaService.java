@@ -38,18 +38,17 @@ public class EmpresaService {
     @Transactional
     public Empresa registrarEmpresa(User usuario, String nombreEmpresa, String descripcion, String url,
             MultipartFile logo) throws IOException {
+
         usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
         usuario.setRol("RECRUITER");
-        User userGuardado = userRepository.save(usuario);
 
         Empresa empresa = new Empresa(nombreEmpresa, descripcion, url);
-        empresa.setId(userGuardado.getId());
-        empresa.setUsuario(userGuardado);
-        userGuardado.setEmpresa(empresa);
+        empresa.setUsuario(usuario); 
+        usuario.setEmpresa(empresa);
 
-        empresaRepository.save(empresa);
-        userRepository.save(userGuardado);
+        User userGuardado = userRepository.save(usuario);
 
+        // 4. Manejo del logo (si existe)
         if (logo != null && !logo.isEmpty()) {
             try {
                 Map result = cloudinaryService.upload(logo);
@@ -64,7 +63,7 @@ public class EmpresaService {
             }
         }
 
-        return empresa;
+        return userGuardado.getEmpresa();
     }
 
     @Transactional(readOnly = true)
