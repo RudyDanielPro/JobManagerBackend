@@ -2,10 +2,13 @@ package Tablon.de.empleos.backend.Controller;
 
 import Tablon.de.empleos.backend.DTO.request.OfertaRequestDTO;
 import Tablon.de.empleos.backend.DTO.response.OfertaResponseDTO;
+import Tablon.de.empleos.backend.Entity.Candidato;
 import Tablon.de.empleos.backend.Entity.OfertaLaboral;
 import Tablon.de.empleos.backend.Entity.User;
+import Tablon.de.empleos.backend.Services.CandidatoService;
 import Tablon.de.empleos.backend.Services.EmpresaService;
 import Tablon.de.empleos.backend.Services.OfertaLaboralService;
+import Tablon.de.empleos.backend.Services.PostulacionService;
 import Tablon.de.empleos.backend.Services.UserService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,19 +19,24 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/ofertas")
-
 public class OfertaLaboralController {
 
     private final OfertaLaboralService ofertaService;
     private final EmpresaService empresaService;
     private final UserService userService;
+    private final CandidatoService candidatoService;
+    private final PostulacionService postulacionService;
 
     public OfertaLaboralController(OfertaLaboralService ofertaService,
             EmpresaService empresaService,
-            UserService userService) {
+            UserService userService,
+            CandidatoService candidatoService,
+            PostulacionService postulacionService) {
         this.ofertaService = ofertaService;
         this.empresaService = empresaService;
         this.userService = userService;
+        this.candidatoService = candidatoService;
+        this.postulacionService = postulacionService;
     }
 
     private OfertaResponseDTO toDTO(OfertaLaboral oferta) {
@@ -44,7 +52,8 @@ public class OfertaLaboralController {
                 oferta.getEmpresa().getId());
     }
 
-    // Endpoints públicos
+    // ============ ENDPOINTS PÚBLICOS ============
+
     @GetMapping("/public/activas")
     public ResponseEntity<Page<OfertaResponseDTO>> listarOfertasActivas(Pageable pageable) {
         return ResponseEntity.ok(ofertaService.obtenerOfertasActivas(pageable).map(this::toDTO));
@@ -70,15 +79,53 @@ public class OfertaLaboralController {
     }
 
     @GetMapping("/public/{id}")
-    public ResponseEntity<OfertaResponseDTO> obtenerOfertaPublica(@PathVariable Long id) {
-        return ofertaService.obtenerPorId(id)
-                .filter(OfertaLaboral::isEstado)
-                .map(this::toDTO)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<OfertaResponseDTO> obtenerOfertaPublica(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {  // ✅ Añadir usuario autenticado (opcional)
+
+        OfertaLaboral oferta = ofertaService.obtenerPorId(id)
+                .orElse(null);
+
+        if (oferta == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // ✅ Si el usuario está autenticado y es CANDIDATO, verificar si aplicó a esta oferta
+        if (userDetails != null) {
+            try {
+                User user = userService.buscarPorEmail(userDetails.getUsername())
+                        .orElse(null);
+
+                if (user != null && "CANDIDATO".equalsIgnoreCase(user.getRol())) {
+                    Candidato candidato = candidatoService.buscarPorUsuarioId(user.getId())
+                            .orElse(null);
+
+                    if (candidato != null) {
+                        // Verificar si el candidato aplicó a esta oferta
+                        boolean yaAplico = postulacionService.yaSePostulo(candidato.getId(), id);
+
+                        // ✅ Si aplicó, permitir ver la oferta aunque esté inactiva
+                        if (yaAplico) {
+                            return ResponseEntity.ok(toDTO(oferta));
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // Si hay algún error, continuar con la lógica normal
+                System.err.println("Error verificando postulación: " + e.getMessage());
+            }
+        }
+
+        // ✅ Para usuarios no autenticados o que no aplicaron, solo mostrar ofertas activas
+        if (!oferta.isEstado()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(toDTO(oferta));
     }
 
-    // Endpoints protegidos
+    // ============ ENDPOINTS PROTEGIDOS ============
+
     @GetMapping("/empresa/mis-ofertas")
     public ResponseEntity<Page<OfertaResponseDTO>> misOfertas(
             Pageable pageable,
