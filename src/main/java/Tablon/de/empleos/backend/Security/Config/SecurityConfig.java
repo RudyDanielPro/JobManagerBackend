@@ -87,6 +87,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PATCH, "/api/candidatos/**").hasAnyRole("CANDIDATO", "ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/candidatos/**").hasAnyRole("CANDIDATO", "ADMIN")
                 
+                // ============ ENDPOINTS DE USUARIOS (FOTO DE PERFIL) ============
+                // ✅ Permitir que ADMIN y el propio usuario puedan subir foto
+                .requestMatchers(HttpMethod.PUT, "/api/usuarios/**").authenticated()
+                
                 // ============ ENDPOINTS QUE REQUIEREN AUTENTICACIÓN ============
                 
                 // Ofertas (excepto las públicas ya definidas)
