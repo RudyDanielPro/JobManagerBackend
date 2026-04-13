@@ -98,13 +98,11 @@ public class AdminController {
         System.out.println("=== DEBUG BACKEND ===");
         System.out.println("Request: " + request);
 
-        // Extraer datos básicos
         String email = (String) request.get("email");
         String usuario = (String) request.get("usuario");
         String password = (String) request.get("password");
         String rol = (String) request.get("rol");
 
-        // Validaciones básicas
         if (password == null || password.isBlank()) {
             return ResponseEntity.badRequest().body("La contraseña es obligatoria");
         }
@@ -123,20 +121,15 @@ public class AdminController {
 
         try {
             if ("CANDIDATO".equalsIgnoreCase(rol)) {
-                // Extraer datos del objeto candidato
                 Map<String, Object> candidato = (Map<String, Object>) request.get("candidato");
                 String nombre = (String) candidato.get("nombre");
                 String apellido = (String) candidato.get("apellido");
-
-                System.out.println("Nombre: " + nombre);
-                System.out.println("Apellido: " + apellido);
 
                 if (nombre == null || apellido == null || nombre.isBlank() || apellido.isBlank()) {
                     return ResponseEntity.badRequest().body("Nombre y apellido son obligatorios para candidato");
                 }
 
                 candidatoService.registrarCandidato(user, nombre, apellido, null);
-                System.out.println("Candidato creado exitosamente");
 
             } else if ("RECRUITER".equalsIgnoreCase(rol)) {
                 Map<String, Object> empresa = (Map<String, Object>) request.get("empresa");
@@ -162,7 +155,6 @@ public class AdminController {
                 user.setPassword(passwordEncoder.encode(user.getPassword()));
 
                 Admin adminEntity = new Admin(nombre, apellido);
-
                 adminEntity.setUsuario(user);
                 user.setAdmin(adminEntity);
 
@@ -243,7 +235,6 @@ public class AdminController {
         }
 
         User savedUser = userRepository.save(existingUser);
-
         return ResponseEntity.ok(savedUser);
     }
 
@@ -273,9 +264,10 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
+    // ✅ CORREGIDO: Usar findAllWithEmpresa para incluir los datos de la empresa
     @GetMapping("/ofertas")
     public ResponseEntity<Page<OfertaLaboral>> getOfertas(Pageable pageable) {
-        return ResponseEntity.ok(ofertaRepository.findAll(pageable));
+        return ResponseEntity.ok(ofertaRepository.findAllWithEmpresa(pageable));
     }
 
     @PatchMapping("/ofertas/{id}/toggle")
@@ -292,9 +284,10 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
+    // ✅ CORREGIDO: Usar findAllWithDetails para incluir candidato y oferta
     @GetMapping("/postulaciones")
     public ResponseEntity<Page<Postulacion>> getPostulaciones(Pageable pageable) {
-        return ResponseEntity.ok(postulacionRepository.findAll(pageable));
+        return ResponseEntity.ok(postulacionRepository.findAllWithDetails(pageable));
     }
 
     @PatchMapping("/postulaciones/{id}/estado")

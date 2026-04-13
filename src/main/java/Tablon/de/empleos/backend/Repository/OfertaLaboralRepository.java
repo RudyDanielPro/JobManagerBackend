@@ -17,7 +17,6 @@ public interface OfertaLaboralRepository extends JpaRepository<OfertaLaboral, Lo
 
     List<OfertaLaboral> findByEmpresaId(Long empresaId);
     
-
     Page<OfertaLaboral> findByEstadoTrue(Pageable pageable);
 
     List<OfertaLaboral> findByEstadoTrue();
@@ -47,6 +46,7 @@ public interface OfertaLaboralRepository extends JpaRepository<OfertaLaboral, Lo
     @Query("SELECT o FROM OfertaLaboral o JOIN FETCH o.empresa WHERE o.id = :id")
     Optional<OfertaLaboral> findByIdWithEmpresa(@Param("id") Long id);
     
+    // ✅ ESTE MÉTODO YA EXISTE - ES EL QUE USAMOS EN EL CONTROLLER
     @Query("SELECT o FROM OfertaLaboral o JOIN FETCH o.empresa")
     Page<OfertaLaboral> findAllWithEmpresa(Pageable pageable);
     

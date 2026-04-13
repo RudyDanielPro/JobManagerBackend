@@ -43,16 +43,20 @@ public interface PostulacionRepository extends JpaRepository<Postulacion, Long> 
 
     long countByCandidatoId(Long candidatoId);
 
-    @Query("SELECT p FROM Postulacion p JOIN FETCH p.candidato JOIN FETCH p.ofertaLaboral WHERE p.id = :id")
+    @Query("SELECT p FROM Postulacion p JOIN FETCH p.candidato c JOIN FETCH c.usuario JOIN FETCH p.ofertaLaboral o JOIN FETCH o.empresa WHERE p.id = :id")
     Optional<Postulacion> findByIdWithDetails(@Param("id") Long id);
 
-    @Query("SELECT p FROM Postulacion p JOIN FETCH p.candidato JOIN FETCH p.ofertaLaboral")
+    @Query("SELECT p FROM Postulacion p JOIN FETCH p.candidato c JOIN FETCH c.usuario JOIN FETCH p.ofertaLaboral o JOIN FETCH o.empresa")
     List<Postulacion> findAllWithDetails();
 
-    @Query("SELECT p FROM Postulacion p JOIN FETCH p.candidato JOIN FETCH p.ofertaLaboral WHERE p.candidato.id = :candidatoId")
+    // ✅ NUEVO MÉTODO PAGINADO CON DETALLES COMPLETOS
+    @Query("SELECT p FROM Postulacion p JOIN FETCH p.candidato c JOIN FETCH c.usuario JOIN FETCH p.ofertaLaboral o JOIN FETCH o.empresa")
+    Page<Postulacion> findAllWithDetails(Pageable pageable);
+
+    @Query("SELECT p FROM Postulacion p JOIN FETCH p.candidato c JOIN FETCH c.usuario JOIN FETCH p.ofertaLaboral o JOIN FETCH o.empresa WHERE p.candidato.id = :candidatoId")
     List<Postulacion> findByCandidatoIdWithDetails(@Param("candidatoId") Long candidatoId);
 
-    @Query("SELECT p FROM Postulacion p JOIN FETCH p.candidato JOIN FETCH p.ofertaLaboral WHERE p.ofertaLaboral.id = :ofertaId")
+    @Query("SELECT p FROM Postulacion p JOIN FETCH p.candidato c JOIN FETCH c.usuario JOIN FETCH p.ofertaLaboral o JOIN FETCH o.empresa WHERE p.ofertaLaboral.id = :ofertaId")
     List<Postulacion> findByOfertaLaboralIdWithDetails(@Param("ofertaId") Long ofertaId);
 
     Page<Postulacion> findByCandidatoIdAndEstado(Long candidatoId, boolean estado, Pageable pageable);
