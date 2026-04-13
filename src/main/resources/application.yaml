@@ -28,6 +28,10 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
+# URL base para enlaces en emails
+app:
+  base-url: ${APP_BASE_URL}
+
 # Gestión de imágenes en la nube
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME}
@@ -41,20 +45,18 @@ resend:
   from:
     email: ${RESEND_FROM_EMAIL}
 
-    jwt:
+# JWT
+jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION}
 
 # Usuario Maestro (ADMIN)
-# En tu archivo application.yaml
-admin:
-  setup:
-    user: ${ADMIN_USER}
-    pass: ${ADMIN_PASS}
-    email: ${ADMIN_EMAIL}
-    foto: ${ADMIN_FOTO_URL}
-    name: ${ADMIN_NAME}
-    apellido: ${ADMIN_APELLIDO}
+ADMIN_USER: ${ADMIN_USER}
+ADMIN_PASS: ${ADMIN_PASS}
+ADMIN_EMAIL: ${ADMIN_EMAIL}
+ADMIN_FOTO_URL: ${ADMIN_FOTO_URL}
+ADMIN_NAME: ${ADMIN_NAME}
+ADMIN_APELLIDO: ${ADMIN_APELLIDO}
 
 # Configuración del servidor para Render
 server:

@@ -23,15 +23,18 @@ public class PostulacionService {
     private final OfertaLaboralRepository ofertaRepository;
     private final CandidatoRepository candidatoRepository;
     private final EmailService emailService;
+    private final AprobacionService aprobacionService;
 
     public PostulacionService(PostulacionRepository postulacionRepository,
             OfertaLaboralRepository ofertaRepository,
             CandidatoRepository candidatoRepository,
-            EmailService emailService) {
+            EmailService emailService,
+            AprobacionService aprobacionService) {
         this.postulacionRepository = postulacionRepository;
         this.ofertaRepository = ofertaRepository;
         this.candidatoRepository = candidatoRepository;
         this.emailService = emailService;
+        this.aprobacionService = aprobacionService;
     }
 
     @Transactional
@@ -54,13 +57,16 @@ public class PostulacionService {
 
         Postulacion postulacion = new Postulacion();
         postulacion.setFechaPostulacion(LocalDateTime.now());
-        postulacion.setEstado(true);
+        postulacion.setEstado(false); // ← Cambiado a false (pendiente por defecto)
         postulacion.setCandidato(candidato);
         postulacion.setOfertaLaboral(oferta);
 
         Postulacion nuevaPostulacion = postulacionRepository.save(postulacion);
-
         candidato.addPostulacion(nuevaPostulacion);
+
+        // Generar token de aprobación
+        String token = aprobacionService.generarTokenAprobacion(nuevaPostulacion.getId());
+        String urlAprobacion = aprobacionService.getUrlAprobacion(token);
 
         String emailDestino = oferta.getEmpresa().getUsuario().getEmail();
         String nombreCompleto = candidato.getNombre() + " " + candidato.getApellido();
@@ -71,7 +77,8 @@ public class PostulacionService {
                 nombreCompleto,
                 candidato.getUsuario().getEmail(),
                 request.getMensaje(),
-                request.getCv());
+                request.getCv(),
+                urlAprobacion);  // ← Pasar URL de aprobación
 
         return nuevaPostulacion;
     }

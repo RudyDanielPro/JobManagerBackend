@@ -23,6 +23,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
 import java.util.Arrays;
 
 @Configuration
@@ -45,39 +46,57 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Endpoints públicos
+                // ============ ENDPOINTS PÚBLICOS (SIN AUTENTICACIÓN) ============
+                
+                // Autenticación y registro
                 .requestMatchers("/api/auth/**").permitAll()
+                
+                // Ofertas públicas (listar, buscar, ver detalle)
                 .requestMatchers("/api/ofertas/public/**").permitAll()
+                
+                // Enviar postulación (requiere token internamente pero endpoint expuesto)
                 .requestMatchers("/api/postulaciones/enviar").permitAll()
                 
-                // ✅ GET de empresas y candidatos son públicos (para obtener logos y contar)
+                // Aprobación de postulaciones por email (con token único)
+                .requestMatchers("/api/aprobacion/**").permitAll()
+                
+                // GET de empresas y candidatos son públicos (para obtener logos, contar, etc.)
                 .requestMatchers(HttpMethod.GET, "/api/empresas/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/candidatos/**").permitAll()
                 
-                // Admin endpoints
+                // ============ ENDPOINTS DE ADMINISTRACIÓN ============
+                
+                // Panel de administración (solo ADMIN)
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                
+                // Documentación Swagger/OpenAPI (solo ADMIN)
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", 
                                  "/swagger-resources/**", "/webjars/**").hasRole("ADMIN")
                 
-                // Operaciones de escritura para empresas (solo RECRUITER y ADMIN)
+                // ============ OPERACIONES DE ESCRITURA PARA EMPRESAS ============
+                
                 .requestMatchers(HttpMethod.POST, "/api/empresas/**").hasAnyRole("RECRUITER", "ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/empresas/**").hasAnyRole("RECRUITER", "ADMIN")
                 .requestMatchers(HttpMethod.PATCH, "/api/empresas/**").hasAnyRole("RECRUITER", "ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/empresas/**").hasAnyRole("RECRUITER", "ADMIN")
                 
-                // Operaciones de escritura para candidatos (solo CANDIDATO y ADMIN)
+                // ============ OPERACIONES DE ESCRITURA PARA CANDIDATOS ============
+                
                 .requestMatchers(HttpMethod.POST, "/api/candidatos/**").hasAnyRole("CANDIDATO", "ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/candidatos/**").hasAnyRole("CANDIDATO", "ADMIN")
                 .requestMatchers(HttpMethod.PATCH, "/api/candidatos/**").hasAnyRole("CANDIDATO", "ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/candidatos/**").hasAnyRole("CANDIDATO", "ADMIN")
                 
-                // Ofertas requieren autenticación (excepto las públicas ya definidas)
+                // ============ ENDPOINTS QUE REQUIEREN AUTENTICACIÓN ============
+                
+                // Ofertas (excepto las públicas ya definidas)
                 .requestMatchers("/api/ofertas/**").authenticated()
                 
-                // Postulaciones requieren autenticación
+                // Postulaciones (excepto enviar que ya es público)
                 .requestMatchers("/api/postulaciones/**").authenticated()
                 
-                // Cualquier otra petición requiere ADMIN
+                // ============ CUALQUIER OTRA PETICIÓN ============
+                
                 .anyRequest().hasRole("ADMIN")
             )
             .authenticationProvider(authenticationProvider())
@@ -90,13 +109,15 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
-            "http://localhost:3000", 
-            "http://localhost:5173",
-            "http://localhost:8080", 
-            "http://localhost:4200",
-            "https://jobmanagerbackend.onrender.com"
+            "http://localhost:3000",      // React (Create React App)
+            "http://localhost:5173",      // Vite
+            "http://localhost:8080",      // Desarrollo local
+            "http://localhost:4200",      // Angular
+            "https://jobmanagerbackend.onrender.com"  // Producción
         ));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList(
+            "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
+        ));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
@@ -123,7 +144,7 @@ public class SecurityConfig {
             
             String roleName = user.getRol();
             if (!roleName.startsWith("ROLE_")) {
-                roleName = "ROLE_" + roleName;
+                roleName = "ROLE_" + roleName.toUpperCase();
             }
             
             return User.builder()
