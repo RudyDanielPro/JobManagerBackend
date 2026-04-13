@@ -47,6 +47,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/ofertas/public/**").permitAll()
                 .requestMatchers("/api/postulaciones/enviar").permitAll()
+                .requestMatchers("/api/empresas").permitAll()  // ✅ Permitir acceso público para listar empresas
+                .requestMatchers("/api/empresas/buscar").permitAll()  // ✅ Permitir búsqueda pública
+                .requestMatchers("/api/candidatos").permitAll()  // ✅ Permitir acceso público para contar candidatos
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/swagger-resources/**", "/webjars/**").hasRole("ADMIN")
                 .requestMatchers("/api/empresas/**").hasAnyRole("RECRUITER", "ADMIN")
@@ -64,7 +67,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:8080", "http://localhost:4200", "https://tu-frontend.onrender.com"));
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:8080", "http://localhost:4200"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
