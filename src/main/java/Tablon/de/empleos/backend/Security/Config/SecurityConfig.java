@@ -5,6 +5,7 @@ import Tablon.de.empleos.backend.Repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -44,18 +45,39 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // Endpoints públicos
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/ofertas/public/**").permitAll()
                 .requestMatchers("/api/postulaciones/enviar").permitAll()
-                .requestMatchers("/api/empresas").permitAll()  // ✅ Permitir acceso público para listar empresas
-                .requestMatchers("/api/empresas/buscar").permitAll()  // ✅ Permitir búsqueda pública
-                .requestMatchers("/api/candidatos").permitAll()  // ✅ Permitir acceso público para contar candidatos
+                
+                // ✅ GET de empresas y candidatos son públicos (para obtener logos y contar)
+                .requestMatchers(HttpMethod.GET, "/api/empresas/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/candidatos/**").permitAll()
+                
+                // Admin endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/swagger-resources/**", "/webjars/**").hasRole("ADMIN")
-                .requestMatchers("/api/empresas/**").hasAnyRole("RECRUITER", "ADMIN")
-                .requestMatchers("/api/candidatos/**").hasAnyRole("CANDIDATO", "ADMIN")
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", 
+                                 "/swagger-resources/**", "/webjars/**").hasRole("ADMIN")
+                
+                // Operaciones de escritura para empresas (solo RECRUITER y ADMIN)
+                .requestMatchers(HttpMethod.POST, "/api/empresas/**").hasAnyRole("RECRUITER", "ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/empresas/**").hasAnyRole("RECRUITER", "ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/api/empresas/**").hasAnyRole("RECRUITER", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/empresas/**").hasAnyRole("RECRUITER", "ADMIN")
+                
+                // Operaciones de escritura para candidatos (solo CANDIDATO y ADMIN)
+                .requestMatchers(HttpMethod.POST, "/api/candidatos/**").hasAnyRole("CANDIDATO", "ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/candidatos/**").hasAnyRole("CANDIDATO", "ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/api/candidatos/**").hasAnyRole("CANDIDATO", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/candidatos/**").hasAnyRole("CANDIDATO", "ADMIN")
+                
+                // Ofertas requieren autenticación (excepto las públicas ya definidas)
                 .requestMatchers("/api/ofertas/**").authenticated()
+                
+                // Postulaciones requieren autenticación
                 .requestMatchers("/api/postulaciones/**").authenticated()
+                
+                // Cualquier otra petición requiere ADMIN
                 .anyRequest().hasRole("ADMIN")
             )
             .authenticationProvider(authenticationProvider())
@@ -67,7 +89,13 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:8080", "http://localhost:4200"));
+        configuration.setAllowedOrigins(Arrays.asList(
+            "http://localhost:3000", 
+            "http://localhost:5173",
+            "http://localhost:8080", 
+            "http://localhost:4200",
+            "https://jobmanagerbackend.onrender.com"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
