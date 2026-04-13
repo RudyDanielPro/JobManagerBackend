@@ -78,7 +78,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public Page<User> listarPorRolPaginado(String rol, Pageable pageable) {
-        return userRepository.findByRol(rol, pageable); // ✅ Con paginación
+        return userRepository.findByRol(rol, pageable);
     }
 
     @Transactional(readOnly = true)
@@ -91,8 +91,6 @@ public class UserService {
         return userRepository.existsByUsuario(usuario);
     }
 
-    // Autenticar usuario (login)
-
     @Transactional(readOnly = true)
     public Optional<User> autenticarUsuario(String identificador, String passwordRaw) {
         Optional<User> userOpt = buscarPorIdentificador(identificador);
@@ -102,8 +100,6 @@ public class UserService {
         }
         return Optional.empty();
     }
-
-    // Actualizar usuario
 
     @Transactional
     public User actualizarUsuario(Long id, User datosNuevos, User usuarioAutenticado) {
@@ -147,7 +143,11 @@ public class UserService {
         User usuario = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + id));
 
-        if (!usuario.getId().equals(usuarioAutenticado.getId())) {
+        // ✅ CORREGIDO: Permitir que ADMIN pueda cambiar la foto de cualquier usuario
+        boolean esAdmin = "ADMIN".equals(usuarioAutenticado.getRol());
+        boolean esMismoUsuario = usuario.getId().equals(usuarioAutenticado.getId());
+
+        if (!esAdmin && !esMismoUsuario) {
             throw new RuntimeException("No tienes permisos para cambiar la foto de este usuario");
         }
 
@@ -166,8 +166,6 @@ public class UserService {
 
         return userRepository.save(usuario);
     }
-
-    // Metodo de eliminar usuario
 
     @Transactional
     public void eliminarUsuario(Long id, User usuarioAutenticado) {
