@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.*;
 
@@ -24,6 +25,7 @@ public class Empresa {
     @MapsId
     @JoinColumn(name = "id")
     @JsonIgnore
+     @JsonIgnoreProperties({"empresa", "candidato", "admin", "password"})
     private User usuario;
 
     @Column(name = "pagina_web")

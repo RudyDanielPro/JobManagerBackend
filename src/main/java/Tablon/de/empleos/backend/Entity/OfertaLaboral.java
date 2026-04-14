@@ -34,7 +34,6 @@ public class OfertaLaboral {
 
     @ManyToOne
     @JoinColumn(name = "empresa_id", nullable = false)
-    @JsonIgnore
     private Empresa empresa;
 
     public OfertaLaboral() {
