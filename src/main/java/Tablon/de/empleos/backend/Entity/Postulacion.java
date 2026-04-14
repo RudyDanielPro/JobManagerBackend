@@ -29,10 +29,12 @@ public class Postulacion {
 
     @ManyToOne
     @JoinColumn(name = "candidato_id", nullable = false)
+    @JsonIgnore
     private Candidato candidato;
 
     @ManyToOne
     @JoinColumn(name = "oferta_id", nullable = false)
+    @JsonIgnore
     private OfertaLaboral ofertaLaboral;
 
     public Postulacion(LocalDateTime fechaPostulacion, boolean estado, Candidato candidato,

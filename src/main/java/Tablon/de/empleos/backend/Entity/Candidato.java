@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -33,7 +32,6 @@ public class Candidato {
     @MapsId
     @JoinColumn(name = "id")
     @JsonIgnore
-     @JsonIgnoreProperties({"candidato", "empresa", "admin", "password"})
     private User usuario;
 
     @OneToMany(mappedBy = "candidato", cascade = CascadeType.ALL, orphanRemoval = true)
